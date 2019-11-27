@@ -1,13 +1,12 @@
-pub mod qamongo;
-pub mod eventmq;
 
 use tokio::net::TcpListener;
 use tokio::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut listener = TcpListener::bind("127.0.0.1:8082").await?;
-    println!("created stream");
+    let addr = "127.0.0.1:8080".parse()?;
+    let mut listener = TcpListener::bind(&addr).unwrap();
+
     loop {
         let (mut socket, _) = listener.accept().await?;
 
@@ -21,23 +20,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Ok(n) if n == 0 => return,
                     Ok(n) => n,
                     Err(e) => {
-                        eprintln!("failed to read from socket; err = {:?}", e);
+                        println!("failed to read from socket; err = {:?}", e);
                         return;
                     }
                 };
 
                 // Write the data back
-                // let result = stream.write(b"hello world\n").await;
                 if let Err(e) = socket.write_all(&buf[0..n]).await {
-                    eprintln!("failed to write to socket; err = {:?}", e);
+                    println!("failed to write to socket; err = {:?}", e);
                     return;
                 }
             }
         });
     }
 }
-//fn main() {
-//    qamongo::query::query_account("192.168.2.24".to_string(), "288870".to_string());
-//    //eventmq::mqbase::connect_mq("192.168.2.24".to_string(), "test".to_string(), "test".to_string(), "thisisQUANTAXIS".to_string());
-//
-//}
