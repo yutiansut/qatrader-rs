@@ -4,10 +4,10 @@
     <exclude-output />
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
-      <sourceFolder url="file://E:/QATrader_Rust\examples" isTestSource="false" />
-      <sourceFolder url="file://E:/QATrader_Rust\tests" isTestSource="true" />
-      <sourceFolder url="file://E:/QATrader_Rust\benches" isTestSource="true" />
-      <excludeFolder url="file://E:/QATrader_Rust\target" />
+      <sourceFolder url="file://E:/qatrader_rs\examples" isTestSource="false" />
+      <sourceFolder url="file://E:/qatrader_rs\tests" isTestSource="true" />
+      <sourceFolder url="file://E:/qatrader_rs\benches" isTestSource="true" />
+      <excludeFolder url="file://E:/qatrader_rs\target" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
