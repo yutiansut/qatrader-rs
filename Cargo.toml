@@ -8,7 +8,7 @@ repository = "https://github.com/yutiansut/qatrader_rs"
 readme = "README.md"
 documentation = "http://doc.yutiansut.com"
 keywords = ["amqp", "rabbitmq", "quantaxis", "quant"]
-categories = ["quant"]
+categories = ["science"]
 license = "MIT"
 
 
