@@ -4,8 +4,11 @@ pub mod eventmq;
 use tokio::net::TcpListener;
 use tokio::prelude::*;
 
+
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+
     let mut listener = TcpListener::bind("127.0.0.1:8082").await?;
     println!("created stream");
     loop {
@@ -19,7 +22,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let n = match socket.read(&mut buf).await {
                     // socket closed
                     Ok(n) if n == 0 => return,
-                    Ok(n) => n,
+                    Ok(n) => {
+                        println!("{}", n);
+                        n
+                    },
                     Err(e) => {
                         eprintln!("failed to read from socket; err = {:?}", e);
                         return;
