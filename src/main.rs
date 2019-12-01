@@ -1,6 +1,6 @@
 pub mod qamongo;
 pub mod eventmq;
-
+pub mod qawebsockets;
 // use tokio::net::TcpListener;
 // use tokio::prelude::*;
 
@@ -42,15 +42,29 @@ pub mod eventmq;
 //         });
 //     }
 // }
+extern crate ndarray;
+
+extern crate chrono;
+use chrono::prelude::*;
+use ndarray::array;
+use ndarray::{ArrayD, ArrayViewD, ArrayViewMutD};
+use numpy::{IntoPyArray, PyArrayDyn,PyArray1, get_array_module};
+use pyo3::prelude::{pymodule,ObjectProtocol, Py, PyModule, PyResult, Python};
+use pyo3::types::PyDict;
+
+
 fn main() {
    //qamongo::query::query_account("192.168.2.24".to_string(), "288870".to_string());
    //eventmq::mqbase::connect_mq("192.168.2.24".to_string(), "test".to_string(), "test".to_string(), "thisisQUANTAXIS".to_string());
+    qawebsockets::websocketclient::wsmain();
     test_ndarray();
+    test_datetime();
+    test_timeseries();
+    test_pyo3();
+    //rust_ext();
 }
 
 
-use ndarray::array;
-extern crate ndarray;
 fn test_ndarray() {
     // let a1 = array![1, 2, 3, 4];
 
@@ -63,4 +77,129 @@ fn test_ndarray() {
     // assert_eq!(a1.shape(), &[4]);
     // assert_eq!(a2.shape(), &[2, 2]);
     // assert_eq!(a3.shape(), &[2, 2, 2]);
+}
+
+
+pub struct Quote {
+    pub datetime: String,
+    pub code: String,
+    pub open: i32,
+    pub high: i32,
+    pub low: i32,
+    pub close: i32,
+}
+
+impl Quote {
+    pub fn new(code: &str, datetime: &str, open: i32, high: i32, low: i32, close: i32) -> Quote {
+        Quote {
+            code: code.to_string(),
+            datetime: datetime.to_string(),
+            open,
+            high,
+            low,
+            close,
+        }
+    }
+
+    pub fn update(&mut self) {
+
+
+        let dt: chrono::DateTime<Utc> = chrono::Utc::now();
+        let fixed_dt = dt.with_timezone(&FixedOffset::east(8*3600));
+//        let mut data = Vec::new();
+        let data = array![4392, 4435, 4285, 9999999];
+        println!("{}", data[0]);
+        fixed_dt.to_string();
+        "rb2001".to_string();
+
+//        self.datetime = data[0].clone();
+//        self.code = data[1].clone();
+//        self.open = data[2].clone();
+//        self.high = data[3].clone();
+//        self.low = data[4].clone();
+//        self.close = data[5].clone();
+
+    }
+}
+
+
+
+
+
+
+fn test_datetime() {
+    let dt: chrono::DateTime<Utc> = chrono::Utc::now();
+    let fixed_dt = dt.with_timezone(&FixedOffset::east(8*3600));
+    println!("{}", dt);
+    println!("{}", fixed_dt);
+}
+
+
+fn test_pyo3() -> Result<(), ()> {
+    let gil = Python::acquire_gil();
+    test_pyo3_(gil.python()).map_err(|e| {
+        eprintln!("error! :{:?}", e);
+        // we can't display python error type via ::std::fmt::Display
+        // so print error here manually
+        e.print_and_set_sys_last_vars(gil.python());
+    })
+}
+
+fn test_pyo3_<'py>(py: Python<'py>) -> PyResult<()> {
+    let np = py.import("numpy")?;
+    let dict = PyDict::new(py);
+    dict.set_item("np", np)?;
+    let pyarray: &PyArray1<i32> = py
+        .eval("np.absolute(np.array([-1, -2, -3], dtype='int32'))", Some(&dict), None)?
+        .extract()?;
+    let slice = pyarray.as_slice()?;
+    assert_eq!(slice, &[1, 2, 3]);
+    Ok(())
+}
+
+
+
+#[pymodule]
+fn rust_ext(_py: Python, m: &PyModule) -> PyResult<()> {
+    // immutable example
+    fn axpy(a: f64, x: ArrayViewD<f64>, y: ArrayViewD<f64>) -> ArrayD<f64> {
+        a * &x + &y
+    }
+
+    // mutable example (no return)
+    fn mult(a: f64, mut x: ArrayViewMutD<f64>) {
+        x *= a;
+    }
+
+    // wrapper of `axpy`
+    #[pyfn(m, "axpy")]
+    fn axpy_py(
+        py: Python,
+        a: f64,
+        x: &PyArrayDyn<f64>,
+        y: &PyArrayDyn<f64>,
+    ) -> Py<PyArrayDyn<f64>> {
+        let x = x.as_array();
+        let y = y.as_array();
+        axpy(a, x, y).into_pyarray(py).to_owned()
+    }
+
+    // wrapper of `mult`
+    #[pyfn(m, "mult")]
+    fn mult_py(_py: Python, a: f64, x: &PyArrayDyn<f64>) -> PyResult<()> {
+        let x = x.as_array_mut();
+        mult(a, x);
+        Ok(())
+    }
+
+    Ok(())
+}
+
+
+fn test_timeseries() {
+    let mut stock = Quote::new("rb2001", "2019", 1, 2, 3, 4);
+    println!("Current OPEN: {}", stock.open);
+    stock.update();
+
+
 }

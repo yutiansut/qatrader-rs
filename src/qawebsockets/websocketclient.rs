@@ -1,92 +1,154 @@
+//! Simple websocket client.
+use serde::{Serialize, Deserialize};
+use std::time::Duration;
+use std::{io, thread};
 
-use std::env;
-use std::io::{self, Read, Write};
-use std::thread;
+use actix::io::SinkWrite;
+use actix::*;
+use actix_codec::{AsyncRead, AsyncWrite, Framed};
+use awc::{
+    error::WsProtocolError,
+    ws::{Codec, Frame, Message},
+    Client,
+};
+use futures::{
+    lazy,
+    stream::{SplitSink, Stream},
+    Future,
+};
 
-use futures::sync::mpsc;
-use futures::{Future, Sink, Stream};
-use tungstenite::protocol::Message;
 
-use tokio_tungstenite::connect_async;
-use tokio_tungstenite::stream::PeerAddr;
 
-fn ws_client(connect_addr:String) {
-    // Specify the server address to which the client will be connecting.
-    let connect_addr = connect_addr.unwrap_or_else(|| panic!("this program requires at least one argument"));
+pub fn wsmain() {
+    ::std::env::set_var("RUST_LOG", "actix_web=info");
+    env_logger::init();
+    let sys = actix::System::new("ws-example");
 
-    let url = url::Url::parse(&connect_addr).unwrap();
+    Arbiter::spawn(lazy(|| {
+        Client::new()
+            .ws("ws://www.yutiansut.com:7988")
+            .connect()
+            .map_err(|e| {
+                println!("Error: {}", e);
+            })
+            .map(|(response, framed)| {
+                println!("{:?}", response);
+                let (sink, stream) = framed.split();
+                let addr = ChatClient::create(|ctx| {
+                    ChatClient::add_stream(stream, ctx);
+                    ChatClient(SinkWrite::new(sink, ctx))
+                });
 
-    // Right now Tokio doesn't support a handle to stdin running on the event
-    // loop, so we farm out that work to a separate thread. This thread will
-    // read data from stdin and then send it to the event loop over a standard
-    // futures channel.
-    let (stdin_tx, stdin_rx) = mpsc::channel(0);
-    thread::spawn(|| read_stdin(stdin_tx));
-    let stdin_rx = stdin_rx.map_err(|_| panic!()); // errors not possible on rx
+                // start console loop
+                thread::spawn(move || loop {
+                    let mut cmd = String::new();
+                    if io::stdin().read_line(&mut cmd).is_err() {
+                        println!("error");
+                        return;
+                    }
+                    addr.do_send(ClientCommand(cmd));
+                });
+            })
+    }));
 
-    // After the TCP connection has been established, we set up our client to
-    // start forwarding data.
-    //
-    // First we do a WebSocket handshake on a TCP stream, i.e. do the upgrade
-    // request.
-    //
-    // Half of the work we're going to do is to take all data we receive on
-    // stdin (`stdin_rx`) and send that along the WebSocket stream (`sink`).
-    // The second half is to take all the data we receive (`stream`) and then
-    // write that to stdout. Currently we just write to stdout in a synchronous
-    // fashion.
-    //
-    // Finally we set the client to terminate once either half of this work
-    // finishes. If we don't have any more data to read or we won't receive any
-    // more work from the remote then we can exit.
-    let mut stdout = io::stdout();
-    let client = connect_async(url)
-        .and_then(move |(ws_stream, _)| {
-            println!("WebSocket handshake has been successfully completed");
-
-            let addr = ws_stream
-                .peer_addr()
-                .expect("connected streams should have a peer address");
-            println!("Peer address: {}", addr);
-
-            // `sink` is the stream of messages going out.
-            // `stream` is the stream of incoming messages.
-            let (sink, stream) = ws_stream.split();
-
-            // We forward all messages, composed out of the data, entered to
-            // the stdin, to the `sink`.
-            let send_stdin = stdin_rx.forward(sink);
-            let write_stdout = stream.for_each(move |message| {
-                stdout.write_all(&message.into_data()).unwrap();
-                Ok(())
-            });
-
-            // Wait for either of futures to complete.
-            send_stdin
-                .map(|_| ())
-                .select(write_stdout.map(|_| ()))
-                .then(|_| Ok(()))
-        })
-        .map_err(|e| {
-            println!("Error during the websocket handshake occurred: {}", e);
-            io::Error::new(io::ErrorKind::Other, e)
-        });
-
-    // And now that we've got our client, we execute it in the event loop!
-    tokio::runtime::run(client.map_err(|_e| ()));
+    let _ = sys.run();
 }
 
-// Our helper method which will read data from stdin and send it along the
-// sender provided.
-fn read_stdin(mut tx: mpsc::Sender<Message>) {
-    let mut stdin = io::stdin();
-    loop {
-        let mut buf = vec![0; 1024];
-        let n = match stdin.read(&mut buf) {
-            Err(_) | Ok(0) => break,
-            Ok(n) => n,
-        };
-        buf.truncate(n);
-        tx = tx.send(Message::binary(buf)).wait().unwrap();
+struct ChatClient<T>(SinkWrite<SplitSink<Framed<T, Codec>>>)
+where
+    T: AsyncRead + AsyncWrite;
+
+#[derive(Message)]
+struct ClientCommand(String);
+
+impl<T: 'static> Actor for ChatClient<T>
+where
+    T: AsyncRead + AsyncWrite,
+{
+    type Context = Context<Self>;
+
+    fn started(&mut self, ctx: &mut Context<Self>) {
+        // start heartbeats otherwise server will disconnect after 10 seconds
+        self.hb(ctx)
     }
+
+    fn stopped(&mut self, _: &mut Context<Self>) {
+        println!("Disconnected");
+
+        // Stop application on disconnect
+        System::current().stop();
+    }
+}
+
+impl<T: 'static> ChatClient<T>
+where
+    T: AsyncRead + AsyncWrite,
+{
+    fn hb(&self, ctx: &mut Context<Self>) {
+        ctx.run_later(Duration::new(1, 0), |act, ctx| {
+            act.0.write(Message::Ping(String::new())).unwrap();
+            act.hb(ctx);
+
+            // client should also check for a timeout here, similar to the
+            // server code
+        });
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct Broker {
+    aid: String,
+    brokers: Vec<String>
+}
+
+/// Handle stdin commands
+impl<T: 'static> Handler<ClientCommand> for ChatClient<T>
+where
+    T: AsyncRead + AsyncWrite,
+{
+    type Result = ();
+    
+    fn handle(&mut self, msg: ClientCommand, _ctx: &mut Context<Self>) {
+        self.0.write(Message::Text(msg.0)).unwrap();
+    }
+}
+
+/// Handle server websocket messages
+
+impl<T: 'static> StreamHandler<Frame, WsProtocolError> for ChatClient<T>
+where
+    T: AsyncRead + AsyncWrite,
+
+ 
+{
+
+
+
+
+    
+    fn handle(&mut self, msg: Frame, _ctx: &mut Context<Self>) {
+
+        if let Frame::Text(txt) = msg {
+            let mut res =  txt.unwrap();
+            let xu = std::str::from_utf8(&res).unwrap();
+            println!("{:?}",xu);
+
+            let u: Broker = serde_json::from_str(&xu).unwrap();
+            println!("{}", serde_json::to_string(&u).unwrap());
+        }
+    }
+
+    fn started(&mut self, _ctx: &mut Context<Self>) {
+        println!("Connected");
+    }
+
+    fn finished(&mut self, ctx: &mut Context<Self>) {
+        println!("Server disconnected");
+        ctx.stop()
+    }
+}
+
+impl<T: 'static> actix::io::WriteHandler<WsProtocolError> for ChatClient<T> where
+    T: AsyncRead + AsyncWrite
+{
 }
