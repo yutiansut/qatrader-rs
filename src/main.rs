@@ -49,7 +49,7 @@ fn main() {
 }
 
 
-use ndarray::ar ray;
+use ndarray::array;
 extern crate ndarray;
 fn test_ndarray() {
     // let a1 = array![1, 2, 3, 4];
