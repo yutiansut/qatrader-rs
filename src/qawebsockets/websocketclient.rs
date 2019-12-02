@@ -19,14 +19,14 @@ use futures::{
 
 
 
-pub fn wsmain() {
+pub fn wsmain(wsuri:String) {
     ::std::env::set_var("RUST_LOG", "actix_web=info");
     env_logger::init();
     let sys = actix::System::new("ws-example");
 
     Arbiter::spawn(lazy(|| {
         Client::new()
-            .ws("ws://www.yutiansut.com:7988")
+            .ws(wsuri)
             .connect()
             .map_err(|e| {
                 println!("QAConnection Error: {}", e);

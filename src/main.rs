@@ -48,15 +48,13 @@ extern crate chrono;
 use chrono::prelude::*;
 use ndarray::array;
 use ndarray::{ArrayD, ArrayViewD, ArrayViewMutD};
-// use numpy::{IntoPyArray, PyArrayDyn,PyArray1, get_array_module};
-// use pyo3::prelude::{pymodule,ObjectProtocol, Py, PyModule, PyResult, Python};
-// use pyo3::types::PyDict;
+
 
 
 fn main() {
    //qamongo::query::query_account("192.168.2.24".to_string(), "288870".to_string());
    //eventmq::mqbase::connect_mq("192.168.2.24".to_string(), "test".to_string(), "test".to_string(), "thisisQUANTAXIS".to_string());
-    qawebsockets::websocketclient::wsmain();
+    qawebsockets::websocketclient::wsmain("ws://www.yutiansut.com:7988".to_string());
     test_ndarray();
     test_datetime();
     test_timeseries();
@@ -66,17 +64,10 @@ fn main() {
 
 
 fn test_ndarray() {
-    // let a1 = array![1, 2, 3, 4];
-
-    // let a2 = array![[1, 2],
-    //                 [3, 4]];
-
     let a3 = array![[[1, 2], [3, 4]],
                     [[5, 6], [7, 8]]];
     println!("{}", a3);
-    // assert_eq!(a1.shape(), &[4]);
-    // assert_eq!(a2.shape(), &[2, 2]);
-    // assert_eq!(a3.shape(), &[2, 2, 2]);
+
 }
 
 
@@ -106,19 +97,10 @@ impl Quote {
 
         let dt: chrono::DateTime<Utc> = chrono::Utc::now();
         let fixed_dt = dt.with_timezone(&FixedOffset::east(8*3600));
-//        let mut data = Vec::new();
         let data = array![4392, 4435, 4285, 9999999];
         println!("{}", data[0]);
         fixed_dt.to_string();
         "rb2001".to_string();
-
-//        self.datetime = data[0].clone();
-//        self.code = data[1].clone();
-//        self.open = data[2].clone();
-//        self.high = data[3].clone();
-//        self.low = data[4].clone();
-//        self.close = data[5].clone();
-
     }
 }
 
