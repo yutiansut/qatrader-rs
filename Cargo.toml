@@ -33,7 +33,7 @@ actix-codec = "0.1.2"
 
 actix-web-actors = "1.0.0"
 actix-files = "0.1.1"
-awc = "0.2.1"
+awc = "0.2.8"
 json = "*"
 futures = "0.1"
 bytes = "0.4"

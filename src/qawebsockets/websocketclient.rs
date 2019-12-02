@@ -18,7 +18,6 @@ use futures::{
 };
 
 
-
 pub fn wsmain(wsuri:String) {
     ::std::env::set_var("RUST_LOG", "actix_web=info");
     env_logger::init();
@@ -96,6 +95,12 @@ where
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+struct Peek {
+    aid: String
+}
+
+
+#[derive(Serialize, Deserialize, Debug)]
 struct Broker {
     aid: String,
     brokers: Vec<String>
@@ -128,6 +133,13 @@ where
 
             let u: Broker = serde_json::from_str(&xu).unwrap();
             println!("{}", serde_json::to_string(&u).unwrap());
+            let peek = Peek { aid: "peek_message".to_string()};
+            println!("{:?}", peek);
+            let b = serde_json::to_string(&peek).unwrap();
+            println!("{:?}",b);
+            self.0.write(Message::Text(b)).unwrap();
+
+
         }
     }
 
