@@ -147,6 +147,4 @@ fn test_timeseries() {
     let mut stock = Quote::new("rb2001", "2019", 1, 2, 3, 4);
     println!("Current OPEN: {}", stock.open);
     stock.update();
-
-
 }
