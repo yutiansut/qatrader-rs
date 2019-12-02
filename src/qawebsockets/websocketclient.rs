@@ -96,7 +96,7 @@ where
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Peek {
-    aid: String
+    aid: "peek_message".to_string()
 }
 
 
@@ -108,9 +108,8 @@ struct Broker {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Login {
-    aid: String,
-    //"aid": "req_login",
+struct ReqLogin {
+    aid: "req_login".to_string(),
     bid: String,
     user_name: String,
     password: String
@@ -118,17 +117,71 @@ struct Login {
 
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Order {
-    aid: String,
-    brokers: Vec<String>
+struct ReqOrder {
+    aid: "insert_order".to_string(),
+    user_id:String,
+    order_id: String,
+    exchange_id: String,
+    instrument_id: String,
+    direction: String,
+    offset: String,
+    volume: String,
+    price_type: String,
+    limit_price: String,
+    volume_condition: String,
+    time_condition: String,
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+struct ReqCancel {
+    aid: "cancel_order".to_string(),
+    user_id:String,
+    order_id: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct ReqQueryBank {
+    aid: "qry_bankcapital".to_string(),
+    bank_id: String,
+    future_account: String,
+    future_password: String,
+    bank_password: String,
+    currency: "CNY".to_string()
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct ReqQuerySettlement {
+    aid: "qry_settlement_info".to_string(),
+    trading_day: i32
+}
+
+
+#[derive(Serialize, Deserialize, Debug)]
+struct ReqChangePassword {
+    aid: "change_password".to_string(),
+    old_password: String,
+    new_password: String
+}
+
+
+#[derive(Serialize, Deserialize, Debug)]
+struct ReqTransfer {
+    aid: "req_transfer".to_string(),
+    bank_id: String,
+    future_account: String,
+    future_password: String,
+    bank_password: String,
+    currency: "CNY".to_string()
+    amount: f64
+
+}
+
 
 #[derive(Serialize, Deserialize, Debug)]
 struct RtnData {
     aid: String,
     data: Vec<String>
 }
-
 
 use serde_json::value::Value;
 
@@ -161,9 +214,8 @@ where
 
             let aid = resx["aid"].to_string();
             let aid_patten = aid.as_str();
-            let peek = Peek { aid: "peek_message".to_string()};
-            let login = Login { 
-                aid: "req_login".to_string(),
+            let peek = Peek {};
+            let login = ReqLogin { 
                 bid: "simnow".to_string(),
                 user_name: "133496".to_string(),
                 password: "QCHL1234".to_string()};
