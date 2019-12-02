@@ -103,8 +103,35 @@ struct Peek {
 #[derive(Serialize, Deserialize, Debug)]
 struct Broker {
     aid: String,
+    brokers: Vec<String>,
+    
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct Login {
+    aid: String,
+    //"aid": "req_login",
+    bid: String,
+    user_name: String,
+    password: String
+}
+
+
+#[derive(Serialize, Deserialize, Debug)]
+struct Order {
+    aid: String,
     brokers: Vec<String>
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+struct RtnData {
+    aid: String,
+    data: Vec<String>
+}
+
+
+use serde_json::value::Value;
+
 
 /// Handle stdin commands
 impl<T: 'static> Handler<ClientCommand> for ChatClient<T>
@@ -130,15 +157,44 @@ where
             let res =  txt.unwrap();
             let xu = std::str::from_utf8(&res).unwrap();
             println!("{:?}",xu);
+            let resx:Value = serde_json::from_str(&xu).unwrap();
 
-            let u: Broker = serde_json::from_str(&xu).unwrap();
-            println!("{}", serde_json::to_string(&u).unwrap());
+            let aid = resx["aid"].to_string();
+            let aid_patten = aid.as_str();
             let peek = Peek { aid: "peek_message".to_string()};
-            println!("{:?}", peek);
-            let b = serde_json::to_string(&peek).unwrap();
-            println!("{:?}",b);
-            self.0.write(Message::Text(b)).unwrap();
-
+            let login = Login { 
+                aid: "req_login".to_string(),
+                bid: "simnow".to_string(),
+                user_name: "133496".to_string(),
+                password: "QCHL1234".to_string()};
+            println!("{:?}",aid_patten);
+            // println!("{:?}",recv_broker);
+            // assert_eq!(aid, Some("rtn_brokers"));
+            // assert_eq!(aid, Some("rtn_data"));
+            match aid_patten {
+                "\"rtn_brokers\"" => {
+                    
+                    println!("{:?}", peek);
+                    let b = serde_json::to_string(&peek).unwrap();
+                    println!("{:?}",b);
+                    self.0.write(Message::Text(b)).unwrap();
+        
+ 
+                    println!("{:?}", login);
+                    let b = serde_json::to_string(&login).unwrap();
+                    println!("{:?}",b);
+                    self.0.write(Message::Text(b)).unwrap();
+                },
+                "\"rtn_data\"" | "\"rtn_condition_orders\"" => {
+                    println!("xxx");
+                    let b = serde_json::to_string(&peek).unwrap();
+                    println!("{:?}",b);
+                    self.0.write(Message::Text(b)).unwrap();
+                },
+                _ => println!("blahh blahhh"),
+            }
+            // let u: Broker = serde_json::from_str(&xu).unwrap();
+            // println!("{}", serde_json::to_string(&u).unwrap());
 
         }
     }
