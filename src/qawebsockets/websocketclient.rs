@@ -117,19 +117,12 @@ where
 
 impl<T: 'static> StreamHandler<Frame, WsProtocolError> for ChatClient<T>
 where
-    T: AsyncRead + AsyncWrite,
-
- 
+    T: AsyncRead + AsyncWrite, 
 {
-
-
-
-
-    
     fn handle(&mut self, msg: Frame, _ctx: &mut Context<Self>) {
 
         if let Frame::Text(txt) = msg {
-            let mut res =  txt.unwrap();
+            let res =  txt.unwrap();
             let xu = std::str::from_utf8(&res).unwrap();
             println!("{:?}",xu);
 

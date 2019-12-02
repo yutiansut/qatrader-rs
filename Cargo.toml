@@ -25,9 +25,7 @@ serde_derive = "1.0"
 serde = { version = "1.0", features = ["derive"] } # 序列化
 rayon = "1.1" # 多线程
 ndarray = "0.13.0" # ndarray
-arrow = { git = "https://gitee.com/yutiansut/arrow"}
-pyo3 = "0.8"
-numpy = "0.7.0"
+
 actix-web = "2.0.0-alpha.1"
 
 actix = "0.8.2"
