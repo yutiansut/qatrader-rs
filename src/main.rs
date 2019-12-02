@@ -52,10 +52,10 @@ use ndarray::array;
 
 
 fn main() {
-   //qamongo::query::query_account("192.168.2.24".to_string(), "288870".to_string());
+   qamongo::action::query_account("192.168.2.24".to_string(), "288870".to_string());
    //eventmq::mqbase::connect_mq("192.168.2.24".to_string(), "test".to_string(), "test".to_string(), "thisisQUANTAXIS".to_string());
-    qawebsockets::websocketclient::wsmain(
-        "ws://101.132.37.31:7988".to_string());
+    // qawebsockets::websocketclient::wsmain(
+    //     "ws://101.132.37.31:7988".to_string());
     test_ndarray();
     test_datetime();
     test_timeseries();
