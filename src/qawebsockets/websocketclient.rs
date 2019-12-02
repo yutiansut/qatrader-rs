@@ -29,7 +29,7 @@ pub fn wsmain() {
             .ws("ws://www.yutiansut.com:7988")
             .connect()
             .map_err(|e| {
-                println!("Error: {}", e);
+                println!("QAConnection Error: {}", e);
             })
             .map(|(response, framed)| {
                 println!("{:?}", response);
