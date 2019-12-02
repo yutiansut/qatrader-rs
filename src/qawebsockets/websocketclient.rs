@@ -96,7 +96,7 @@ where
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Peek {
-    aid: "peek_message".to_string()
+    aid: String,
 }
 
 
@@ -109,7 +109,7 @@ struct Broker {
 
 #[derive(Serialize, Deserialize, Debug)]
 struct ReqLogin {
-    aid: "req_login".to_string(),
+    aid: String,
     bid: String,
     user_name: String,
     password: String
@@ -118,7 +118,7 @@ struct ReqLogin {
 
 #[derive(Serialize, Deserialize, Debug)]
 struct ReqOrder {
-    aid: "insert_order".to_string(),
+    aid: String,
     user_id:String,
     order_id: String,
     exchange_id: String,
@@ -134,31 +134,31 @@ struct ReqOrder {
 
 #[derive(Serialize, Deserialize, Debug)]
 struct ReqCancel {
-    aid: "cancel_order".to_string(),
+    aid: String,
     user_id:String,
-    order_id: String,
+    order_id: String
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 struct ReqQueryBank {
-    aid: "qry_bankcapital".to_string(),
+    aid: String,
     bank_id: String,
     future_account: String,
     future_password: String,
     bank_password: String,
-    currency: "CNY".to_string()
+    currency: String
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 struct ReqQuerySettlement {
-    aid: "qry_settlement_info".to_string(),
+    aid: String,
     trading_day: i32
 }
 
 
 #[derive(Serialize, Deserialize, Debug)]
 struct ReqChangePassword {
-    aid: "change_password".to_string(),
+    aid: String,
     old_password: String,
     new_password: String
 }
@@ -166,12 +166,12 @@ struct ReqChangePassword {
 
 #[derive(Serialize, Deserialize, Debug)]
 struct ReqTransfer {
-    aid: "req_transfer".to_string(),
+    aid: String,
     bank_id: String,
     future_account: String,
     future_password: String,
     bank_password: String,
-    currency: "CNY".to_string()
+    currency: String,
     amount: f64
 
 }
@@ -214,10 +214,11 @@ where
 
             let aid = resx["aid"].to_string();
             let aid_patten = aid.as_str();
-            let peek = Peek {};
+            let peek = Peek { aid: "peek_message".to_string()};
             let login = ReqLogin { 
+                aid: "req_login".to_string(),
                 bid: "simnow".to_string(),
-                user_name: "133496".to_string(),
+                user_name: "133495".to_string(),
                 password: "QCHL1234".to_string()};
             println!("{:?}",aid_patten);
             // println!("{:?}",recv_broker);
