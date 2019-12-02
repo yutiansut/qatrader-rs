@@ -218,12 +218,9 @@ where
             let login = ReqLogin { 
                 aid: "req_login".to_string(),
                 bid: "simnow".to_string(),
-                user_name: "133495".to_string(),
+                user_name: "133496".to_string(),
                 password: "QCHL1234".to_string()};
             println!("{:?}",aid_patten);
-            // println!("{:?}",recv_broker);
-            // assert_eq!(aid, Some("rtn_brokers"));
-            // assert_eq!(aid, Some("rtn_data"));
             match aid_patten {
                 "\"rtn_brokers\"" => {
                     
@@ -246,9 +243,6 @@ where
                 },
                 _ => println!("blahh blahhh"),
             }
-            // let u: Broker = serde_json::from_str(&xu).unwrap();
-            // println!("{}", serde_json::to_string(&u).unwrap());
-
         }
     }
 
