@@ -18,9 +18,6 @@ license = "MIT"
 mongodb = "0.3.11" # mongodb
 amiquip = "0.3"
 futures = "^0.1"
-failure = "^0.1"
-itertools = "^0.8.0"
-lapin-futures = "^0.18"
 log = "^0.4"
 chrono = { version = "0.4", features = ["serde"] } # datetime
 env_logger = "^0.7" 
@@ -29,12 +26,9 @@ serde_derive = "1.0"
 serde = { version = "1.0", features = ["derive"] } # 序列化
 rayon = "1.1" # 多线程
 ndarray = "0.13.0" # ndarray
-
 actix-web = "2.0.0-alpha.1"
-
 actix = "0.8.2"
 actix-codec = "0.1.2"
-
 actix-web-actors = "1.0.0"
 actix-files = "0.1.1"
 awc = "0.2.8"

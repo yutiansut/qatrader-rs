@@ -1,156 +1,133 @@
-use lapin::channel::{
-    BasicConsumeOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,BasicProperties, BasicPublishOptions,
+
+use amiquip::{
+    Connection, ConsumerMessage, ConsumerOptions, ExchangeDeclareOptions, ExchangeType, FieldTable,
+    QueueDeclareOptions, Result,
 };
-use lapin::client::ConnectionOptions;
-use lapin::types::FieldTable;
-
-use futures::future::Future;
-use futures::stream::Stream;
 
 
-use failure::Error;
-
-use itertools::free::join;
-use lapin_futures as lapin;
-use tokio;
-use tokio::net::TcpStream;
-use tokio::runtime::Runtime;
-
-
-
-
-
-use lapin::client::Client as AMQPClient;
-
-pub fn subscriber() {
-    let addr = "127.0.0.1:5672".parse().unwrap();
-
-    Runtime::new()
-        .unwrap()
-        .block_on_all(
-            TcpStream::connect(&addr) // try to initiate a TCP connection
-                .map_err(Error::from)
-                .and_then(|stream| {
-                    // if successful, pass it to AMQP client
-                    AMQPClient::connect(stream, ConnectionOptions{
-                        username: "admin".to_string(),
-                        password: "admin".to_string(),
-                        vhost: "/".to_string(),
-                        frame_max: 0,
-                        heartbeat: 0,
-                        properties: Default::default()
-                    }).map_err(Error::from)
-                })
-                .and_then(|(client, heartbeat)| {
-                    // do a heartbeat on a dedicated thread to keep us connected
-                    tokio::spawn(heartbeat.map_err(|_| ()));
-                    // create a channel
-                    client.create_channel().map_err(Error::from)
-                })
-                .and_then(|c| {
-                    let channel = c.clone();
-                    // generate an queue with a random name which deletes itself after use
-                    let queue_options = QueueDeclareOptions {
-                        durable: false,
-                        exclusive: true,
-                        auto_delete: true,
-                        nowait: false,
-                        passive: false,
-                        ticket: 0u16,
-                    };
-                    channel
-                        .exchange_declare(
-                            "tick",
-                            "direct",
-                            ExchangeDeclareOptions::default(),
-                            FieldTable::new(),
-                        )
-                        .map(move |_| channel.clone())
-                        // declare a queue
-                        .and_then(move |ch| {
-                            // declare a queue using specified options
-                            // if name is empty it will be generated
-                            ch.queue_declare("", queue_options, FieldTable::new())
-                                .map(move |queue| (ch.clone(), queue))
-                        })
-                        .and_then(move |(ch, queue)| {
-                            // bind our queue to declared exchange
-                            let name = queue.name();
-                            ch.queue_bind(
-                                &name,
-                                "tick",
-                                "rb2001",
-                                QueueBindOptions::default(),
-                                FieldTable::new(),
-                            )
-                                .map(move |_| (ch.clone(), queue))
-                        })
-                        .and_then(move |(ch, queue)| {
-                            // create a message receiver
-                            ch.basic_consume(
-                                &queue,
-                                "consumer",
-                                BasicConsumeOptions::default(),
-                                FieldTable::new(),
-                            )
-                                .map(move |s| (ch.clone(), s))
-                        })
-                        .and_then(move |(ch, stream)| {
-                            // print received messages
-                            stream.for_each(move |message| {
-                                let text = std::str::from_utf8(&message.data).unwrap();
-                                println!("Received: {:?}", text);
-                                ch.basic_ack(message.delivery_tag, false)
-                            })
-                        })
-                        .map_err(Error::from)
-                }),
-        )
-        .expect("Failed to create tokio runtime");
+pub struct QAEventMQ{pub amqp : String,
+   pub exchange: String,
+    pub model: String,
+    pub routing_key: String
 }
 
-fn publisher() {
-    let addr = "192.168.2.118:5672".parse().unwrap();
-    let args: Vec<_> = std::env::args().skip(1).collect();
-    let message = match args.len() {
-        0 => "hello".to_string(),
-        _ => join(args, " "),
-    };
+pub trait Subscribe {
+    fn subscribe_routing(&mut self) ->  Result<()>;
+}
+pub trait Callback {
+    fn callback(&mut self,  message:String) -> Option<i32>;
+}
+impl Callback for QAEventMQ{
+    fn callback(&mut self, message:String) ->  Option<i32>{
+        println!("{}",message);
+        Some(1)
+    }
+}
+impl Subscribe for QAEventMQ{
+    fn subscribe_routing(&mut self) ->Result<()>{
+        let mut connection = Connection::insecure_open(&self.amqp)?;
+        let channel = connection.open_channel(None)?;
+        let exchange = channel.exchange_declare(
+            ExchangeType::Direct,
+            &self.exchange,
+            ExchangeDeclareOptions::default(),
+        )?;
+        let queue = channel.queue_declare(
+            "",
+            QueueDeclareOptions {
+                exclusive: true,
+                ..QueueDeclareOptions::default()
+            },
+        )?;
+        println!("created exclusive queue {}", queue.name());
 
-    Runtime::new()
-        .unwrap()
-        .block_on_all(
-            TcpStream::connect(&addr) // try to initiate a TCP connection
-                .map_err(Error::from)
-                .and_then(|stream| {
-                    // if successful, pass it to AMQP client
-                    AMQPClient::connect(stream, ConnectionOptions{username: "admin".to_string(), password: "admin".to_string(), vhost: "/".to_string(), frame_max: 0, heartbeat: 0, properties: Default::default() }).map_err(Error::from)
-                })
-                .and_then(|(client, _)| client.create_channel().map_err(Error::from)) // create a channel
-                .and_then(move |c| {
-                    let channel = c.clone();
-                    channel
-                        // declare a new exchange
-                        .exchange_declare(
-                            "test_fanout",
-                            "fanout",
-                            ExchangeDeclareOptions::default(),
-                            FieldTable::new(),
-                        )
-                        .map(move |_| channel.clone())
-                        .and_then(move |ch| {
-                            // if successful, send a message
-                            ch.basic_publish(
-                                "logs",
-                                "",
-                                message.as_bytes().to_vec(),
-                                BasicPublishOptions::default(),
-                                BasicProperties::default(),
-                            )
-                                .map(|_| println!("Sent a message"))
-                        })
-                        .map_err(Error::from)
-                }),
-        )
-        .expect("Failed to create tokio runtime");
+
+        queue.bind(&exchange, self.routing_key.clone(), FieldTable::new())?;
+        // Start a consumer. Use no_ack: true so the server doesn't wait for us to ack
+        // the messages it sends us.
+        let consumer = queue.consume(ConsumerOptions {
+            no_ack: true,
+            ..ConsumerOptions::default()
+        })?;
+
+        for (i, message) in consumer.receiver().iter().enumerate() {
+            match message {
+                ConsumerMessage::Delivery(delivery) => {
+                    let body = String::from_utf8_lossy(&delivery.body);
+//                    println!("({:>3}) {}:{}", i, delivery.routing_key, body);
+                    self.callback(body.to_string());
+                }
+                other => {
+                    println!("Consumer ended: {:?}", other);
+                    break;
+                }
+            }
+        }
+        connection.close()
+    }
+}
+
+pub fn main() -> Result<()> {
+    env_logger::init();
+
+    // Open connection.
+    let mut connection = Connection::insecure_open("amqp://admin:admin@localhost:5672")?;
+
+    // Open a channel - None says let the library choose the channel ID.
+    let channel = connection.open_channel(None)?;
+
+    // Declare the fanout exchange we will bind to.
+    let exchange = channel.exchange_declare(
+        ExchangeType::Direct,
+        "tick",
+        ExchangeDeclareOptions::default(),
+    )?;
+
+    // Declare the exclusive, server-named queue we will use to consume.
+    let queue = channel.queue_declare(
+        "",
+        QueueDeclareOptions {
+            exclusive: true,
+            ..QueueDeclareOptions::default()
+        },
+    )?;
+    println!("created exclusive queue {}", queue.name());
+
+//    let mut args = std::env::args();
+//    if args.len() < 2 {
+//        eprintln!(
+//            "usage: {} [info] [warning] [error]",
+//            args.next()
+//                .unwrap_or_else(|| "routing_receive_logs_direct".to_string())
+//        );
+//        std::process::exit(1);
+//    }
+
+//    for severity in args.skip(1) {
+//        // Bind to each requested log severity.
+//        queue.bind(&exchange, severity, FieldTable::new())?;
+//    }
+    queue.bind(&exchange, "rb2001".to_string(), FieldTable::new())?;
+    // Start a consumer. Use no_ack: true so the server doesn't wait for us to ack
+    // the messages it sends us.
+    let consumer = queue.consume(ConsumerOptions {
+        no_ack: true,
+        ..ConsumerOptions::default()
+    })?;
+    println!("Waiting for logs. Press Ctrl-C to exit.");
+
+    for (i, message) in consumer.receiver().iter().enumerate() {
+        match message {
+            ConsumerMessage::Delivery(delivery) => {
+                let body = String::from_utf8_lossy(&delivery.body);
+                println!("({:>3}) {}:{}", i, delivery.routing_key, body);
+            }
+            other => {
+                println!("Consumer ended: {:?}", other);
+                break;
+            }
+        }
+    }
+
+    connection.close()
 }

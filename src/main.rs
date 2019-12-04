@@ -1,6 +1,6 @@
 pub mod qamongo;
+
 pub mod qaeventmq;
-pub mod amiq;
 
 //pub mod qawebsockets;
 // use tokio::net::TcpListener;
@@ -51,23 +51,18 @@ use chrono::prelude::*;
 use ndarray::array;
 // use ndarray::{ArrayD, ArrayViewD, ArrayViewMutD};
 
-use amiq::Subscribe;
+use qaeventmq::Subscribe;
+use qaeventmq::Callback;
+use crate::qaeventmq::QAEventMQ;
+
 fn main() {
 
     qamongo::query_account("192.168.2.24".to_string(), "288870".to_string());
-    //qaeventmq::connect_mq("192.168.2.24".to_string(), "test".to_string(), "test".to_string(), "thisisQUANTAXIS".to_string());
-//    let mq = qaeventmq::Eventmq{
-//        addr: "192.168.2.118:5672".to_string(),
-//        username: "admin".to_string(),
-//        password: "admin".to_string(),
-//        vhost: "/".to_string(),
-//        exchange: "realtime_1min_IF1912".to_string()
-//    };
 
-//    mq.subscriber_fanout();
-    //qaeventmq::subscriber();
-    // amiq::main();
-    let mut client = amiq::QAEventMQ{
+
+
+
+    let mut client = qaeventmq::QAEventMQ{
         amqp: "amqp://admin:admin@192.168.2.118:5672/".to_string(),
         exchange: "tick".to_string(),
         model: "direct".to_string(),
@@ -80,8 +75,7 @@ fn main() {
     test_ndarray();
     test_datetime();
     test_timeseries();
-    // test_pyo3();
-    //rust_ext();
+
 }
 
 
