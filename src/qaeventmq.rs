@@ -1,7 +1,7 @@
 
 use amiquip::{
     Connection, ConsumerMessage, ConsumerOptions, ExchangeDeclareOptions, ExchangeType, FieldTable,
-    QueueDeclareOptions, Result,
+    QueueDeclareOptions, Result, Publish
 };
 
 
@@ -11,9 +11,14 @@ pub struct QAEventMQ{pub amqp : String,
     pub routing_key: String
 }
 
-pub trait Subscribe {
+pub trait Subscriber {
     fn subscribe_routing(&mut self) ->  Result<()>;
 }
+
+pub trait Publisher {
+    fn publish_routing(&mut self, message:String) -> Result<()>;
+}
+
 pub trait Callback {
     fn callback(&mut self,  message:String) -> Option<i32>;
 }
@@ -23,7 +28,7 @@ impl Callback for QAEventMQ{
         Some(1)
     }
 }
-impl Subscribe for QAEventMQ{
+impl Subscriber for QAEventMQ{
     fn subscribe_routing(&mut self) ->Result<()>{
         let mut connection = Connection::insecure_open(&self.amqp)?;
         let channel = connection.open_channel(None)?;
@@ -50,7 +55,7 @@ impl Subscribe for QAEventMQ{
             ..ConsumerOptions::default()
         })?;
 
-        for (i, message) in consumer.receiver().iter().enumerate() {
+        for (_i, message) in consumer.receiver().iter().enumerate() {
             match message {
                 ConsumerMessage::Delivery(delivery) => {
                     let body = String::from_utf8_lossy(&delivery.body);
@@ -66,6 +71,22 @@ impl Subscribe for QAEventMQ{
         connection.close()
     }
 }
+
+impl Publisher for QAEventMQ{
+    fn publish_routing(&mut self, message:String) -> Result<()> {
+        let mut connection = Connection::insecure_open(&self.amqp)?;
+        let channel = connection.open_channel(None)?;
+        let exchange = channel.exchange_declare(
+            ExchangeType::Direct,
+            &self.exchange,
+            ExchangeDeclareOptions::default(),
+        )?;
+        exchange.publish(Publish::new(message.as_bytes(), self.routing_key.clone()))?;
+        println!("Sent {}:{}", self.routing_key, message);
+        connection.close()
+    }
+}
+
 
 pub fn main() -> Result<()> {
     env_logger::init();
