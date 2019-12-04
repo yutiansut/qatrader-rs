@@ -1,5 +1,6 @@
 pub mod qamongo;
 pub mod qaeventmq;
+pub mod amiq;
 
 //pub mod qawebsockets;
 // use tokio::net::TcpListener;
@@ -50,7 +51,7 @@ use chrono::prelude::*;
 use ndarray::array;
 // use ndarray::{ArrayD, ArrayViewD, ArrayViewMutD};
 
-
+use amiq::Subscribe;
 fn main() {
 
     qamongo::query_account("192.168.2.24".to_string(), "288870".to_string());
@@ -64,7 +65,15 @@ fn main() {
 //    };
 
 //    mq.subscriber_fanout();
-    qaeventmq::subscriber();
+    //qaeventmq::subscriber();
+    // amiq::main();
+    let mut client = amiq::QAEventMQ{
+        amqp: "amqp://admin:admin@192.168.2.118:5672/".to_string(),
+        exchange: "tick".to_string(),
+        model: "direct".to_string(),
+        routing_key: "rb2001".to_string()
+    };
+    client.subscribe_routing();
     // qawebsockets::websocketclient::wsmain(
     //     "ws://101.132.37.31:7988".to_string());
 

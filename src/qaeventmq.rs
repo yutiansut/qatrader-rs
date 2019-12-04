@@ -23,7 +23,7 @@ use tokio::runtime::Runtime;
 use lapin::client::Client as AMQPClient;
 
 pub fn subscriber() {
-    let addr = "192.168.2.118:5672".parse().unwrap();
+    let addr = "127.0.0.1:5672".parse().unwrap();
 
     Runtime::new()
         .unwrap()
@@ -60,8 +60,8 @@ pub fn subscriber() {
                     };
                     channel
                         .exchange_declare(
-                            "realtime_1min_rb2001",
-                            "fanout",
+                            "tick",
+                            "direct",
                             ExchangeDeclareOptions::default(),
                             FieldTable::new(),
                         )
@@ -78,8 +78,8 @@ pub fn subscriber() {
                             let name = queue.name();
                             ch.queue_bind(
                                 &name,
-                                "realtime_1min_rb2001",
-                                "",
+                                "tick",
+                                "rb2001",
                                 QueueBindOptions::default(),
                                 FieldTable::new(),
                             )
