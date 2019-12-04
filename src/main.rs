@@ -1,6 +1,7 @@
 pub mod qamongo;
-pub mod eventmq;
-pub mod qawebsockets;
+pub mod qaeventmq;
+
+//pub mod qawebsockets;
 // use tokio::net::TcpListener;
 // use tokio::prelude::*;
 
@@ -50,12 +51,23 @@ use ndarray::array;
 // use ndarray::{ArrayD, ArrayViewD, ArrayViewMutD};
 
 
-
 fn main() {
-   qamongo::action::query_account("192.168.2.24".to_string(), "288870".to_string());
-   //eventmq::mqbase::connect_mq("192.168.2.24".to_string(), "test".to_string(), "test".to_string(), "thisisQUANTAXIS".to_string());
+
+    qamongo::query_account("192.168.2.24".to_string(), "288870".to_string());
+    //qaeventmq::connect_mq("192.168.2.24".to_string(), "test".to_string(), "test".to_string(), "thisisQUANTAXIS".to_string());
+//    let mq = qaeventmq::Eventmq{
+//        addr: "192.168.2.118:5672".to_string(),
+//        username: "admin".to_string(),
+//        password: "admin".to_string(),
+//        vhost: "/".to_string(),
+//        exchange: "realtime_1min_IF1912".to_string()
+//    };
+
+//    mq.subscriber_fanout();
+    qaeventmq::subscriber();
     // qawebsockets::websocketclient::wsmain(
     //     "ws://101.132.37.31:7988".to_string());
+
     test_ndarray();
     test_datetime();
     test_timeseries();
