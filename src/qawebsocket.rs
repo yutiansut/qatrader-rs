@@ -46,10 +46,6 @@ pub fn wsmain(wsuri:String, user_name:String, password:String) {
                         user_name,
                         password,};
 
-//                    if io::stdin().read_line(&mut cmd).is_err() {
-//                        println!("error");
-//                        return;
-//                    }
                     let b = serde_json::to_string(&login).unwrap();
                     addr.do_send(ClientCommand(b));
                 });
@@ -69,6 +65,18 @@ pub fn QAtradeR(user_name : String, password: String, broker: String,
     let sys = actix::System::new("qatrader");
 
 
+    /// 需要一个缓冲的Queue, 来进行线程中间消息的分发
+    /// 
+    /// rabbitmq.QAORDER_ROUTER.account_cookie
+    /// recv => meessage ==> queue
+    /// queue ==> to websocket ==> send
+    /// websocket ==> recv => save to database ==> send new requests
+    /// 
+    /// 
+    /// database is the only interface of account message exploruse
+
+
+    
     Arbiter::spawn(lazy(|| {
         Client::new()
             .ws(ws_uri)
@@ -105,15 +113,8 @@ pub fn QAtradeR(user_name : String, password: String, broker: String,
                         user_name: user_name.clone(),
                         password: password.clone(),};
 
-//                    if io::stdin().read_line(&mut cmd).is_err() {
-//                        println!("error");
-//                        return;
-//                    }
                     let b = serde_json::to_string(&login).unwrap();
                     addr.do_send(ClientCommand(b));
-
-
-
 
                     thread::spawn(move || {
                         client.subscribe_routing();

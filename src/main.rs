@@ -50,8 +50,8 @@ fn main() {
 
 
     qawebsocket::QAtradeR(
-       "test1".to_string(),"test1".to_string(), "QUANTAXIS".to_string(), "192.168.2.24".to_string(),
-       "ws://192.168.2.118:7988".to_string(), "amqp://admin:admin@192.168.2.24:5672/".to_string());
+       "test1".to_string(),"test1".to_string(), "QUANTAXIS".to_string(), "127.0.0.1".to_string(),
+       "ws://101.132.37.31".to_string(), "amqp://admin:admin@127.0.0.1:5672/".to_string());
 
     // thread::sleep(Duration::from_secs(200));
 //    thread::spawn(move || {
