@@ -19,8 +19,7 @@ use futures::{
 
 
 pub fn wsmain(wsuri:String, user_name:String, password:String) {
-    ::std::env::set_var("RUST_LOG", "actix_web=info");
-    env_logger::init();
+
     let sys = actix::System::new("ws-example");
 
 
@@ -47,8 +46,8 @@ pub fn wsmain(wsuri:String, user_name:String, password:String) {
                     let login = ReqLogin {
                         aid: "req_login".to_string(),
                         bid: "QUANTAXIS".to_string(),
-                        user_name: "133496".to_string(),
-                        password: "QCHL1234".to_string()};
+                        user_name,
+                        password,};
 
 //                    if io::stdin().read_line(&mut cmd).is_err() {
 //                        println!("error");

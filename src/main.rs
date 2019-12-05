@@ -43,15 +43,28 @@ fn main() {
         client.subscribe_routing();
 
     });
+    let mut ix = 0;
+    for mut ix in 0..10000 {
+        thread::spawn(move || {
 
+                println!("xxxx{}",ix);
+                qawebsocket::wsmain(
+                    "ws://101.132.37.31:7988".to_string(),
+                    format!("s0{}", ix), format!("s0{}", ix));
+                ix +=1;
 
-     qawebsocket::wsmain(
-         "ws://101.132.37.31:7988".to_string(),
-                "s01".to_string(), "s01".to_string());
+            });
+        thread::sleep(Duration::from_millis(900));
 
-    test_ndarray();
-    test_datetime();
-    test_timeseries();
+    };
+    qawebsocket::wsmain(
+        "ws://101.132.37.31:7988".to_string(),
+        format!("sw0{}", ix), format!("sw0{}", ix));
+//
+//
+//    test_ndarray();
+//    test_datetime();
+//    test_timeseries();
 
 }
 
