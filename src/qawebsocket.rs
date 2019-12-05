@@ -1,7 +1,7 @@
 //! Simple websocket client.
 use serde::{Serialize, Deserialize};
 use std::time::Duration;
-use std::{io, thread};
+use std::{thread};
 
 use actix::io::SinkWrite;
 use actix::*;
@@ -18,10 +18,10 @@ use futures::{
 };
 
 
-pub fn wsmain(wsuri:String) {
-    ::std::env::set_var("RUST_LOG", "actix_web=info");
-    env_logger::init();
+pub fn wsmain(wsuri:String, user_name:String, password:String) {
+
     let sys = actix::System::new("ws-example");
+
 
     Arbiter::spawn(lazy(|| {
         Client::new()
@@ -38,14 +38,20 @@ pub fn wsmain(wsuri:String) {
                     ChatClient(SinkWrite::new(sink, ctx))
                 });
 
-                // start console loop
-                thread::spawn(move || loop {
-                    let mut cmd = String::new();
-                    if io::stdin().read_line(&mut cmd).is_err() {
-                        println!("error");
-                        return;
-                    }
-                    addr.do_send(ClientCommand(cmd));
+                // start console loop loop
+                thread::spawn(move || {
+                    let login = ReqLogin {
+                        aid: "req_login".to_string(),
+                        bid: "QUANTAXIS".to_string(),
+                        user_name,
+                        password,};
+
+//                    if io::stdin().read_line(&mut cmd).is_err() {
+//                        println!("error");
+//                        return;
+//                    }
+                    let b = serde_json::to_string(&login).unwrap();
+                    addr.do_send(ClientCommand(b));
                 });
             })
     }));
@@ -93,6 +99,60 @@ where
         });
     }
 }
+
+impl<T: 'static> StreamHandler<Frame, WsProtocolError> for ChatClient<T>
+    where
+        T: AsyncRead + AsyncWrite,
+{
+    fn handle(&mut self, msg: Frame, _ctx: &mut Context<Self>) {
+
+        if let Frame::Text(txt) = msg {
+            let res =  txt.unwrap();
+            let xu = std::str::from_utf8(&res).unwrap();
+            println!("{:?}",xu);
+            let resx:Value = serde_json::from_str(&xu).unwrap();
+
+            let aid = resx["aid"].to_string();
+            let aid_patten = aid.as_str();
+            let peek = Peek { aid: "peek_message".to_string()};
+
+            println!("{:?}",aid_patten);
+            match aid_patten {
+                "\"rtn_brokers\"" => {
+
+                    println!("{:?}", peek);
+                    let b = serde_json::to_string(&peek).unwrap();
+                    println!("{:?}",b);
+                    self.0.write(Message::Text(b)).unwrap();
+
+//
+//                    println!("{:?}", login);
+//                    let b = serde_json::to_string(&login).unwrap();
+//                    println!("{:?}",b);
+//                    self.0.write(Message::Text(b)).unwrap();
+                },
+                "\"rtn_data\"" | "\"rtn_condition_orders\"" => {
+                    println!("xxx");
+                    let b = serde_json::to_string(&peek).unwrap();
+                    println!("{:?}",b);
+                    self.0.write(Message::Text(b)).unwrap();
+                },
+                _ => println!("blahh blahhh"),
+            }
+        }
+    }
+
+    fn started(&mut self, _ctx: &mut Context<Self>) {
+        println!("Connected");
+    }
+
+    fn finished(&mut self, ctx: &mut Context<Self>) {
+        println!("Server disconnected");
+        ctx.stop()
+    }
+}
+
+
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Peek {
@@ -200,61 +260,6 @@ where
 
 /// Handle server websocket messages
 
-impl<T: 'static> StreamHandler<Frame, WsProtocolError> for ChatClient<T>
-where
-    T: AsyncRead + AsyncWrite, 
-{
-    fn handle(&mut self, msg: Frame, _ctx: &mut Context<Self>) {
-
-        if let Frame::Text(txt) = msg {
-            let res =  txt.unwrap();
-            let xu = std::str::from_utf8(&res).unwrap();
-            println!("{:?}",xu);
-            let resx:Value = serde_json::from_str(&xu).unwrap();
-
-            let aid = resx["aid"].to_string();
-            let aid_patten = aid.as_str();
-            let peek = Peek { aid: "peek_message".to_string()};
-            let login = ReqLogin { 
-                aid: "req_login".to_string(),
-                bid: "simnow".to_string(),
-                user_name: "133496".to_string(),
-                password: "QCHL1234".to_string()};
-            println!("{:?}",aid_patten);
-            match aid_patten {
-                "\"rtn_brokers\"" => {
-                    
-                    println!("{:?}", peek);
-                    let b = serde_json::to_string(&peek).unwrap();
-                    println!("{:?}",b);
-                    self.0.write(Message::Text(b)).unwrap();
-        
- 
-                    println!("{:?}", login);
-                    let b = serde_json::to_string(&login).unwrap();
-                    println!("{:?}",b);
-                    self.0.write(Message::Text(b)).unwrap();
-                },
-                "\"rtn_data\"" | "\"rtn_condition_orders\"" => {
-                    println!("xxx");
-                    let b = serde_json::to_string(&peek).unwrap();
-                    println!("{:?}",b);
-                    self.0.write(Message::Text(b)).unwrap();
-                },
-                _ => println!("blahh blahhh"),
-            }
-        }
-    }
-
-    fn started(&mut self, _ctx: &mut Context<Self>) {
-        println!("Connected");
-    }
-
-    fn finished(&mut self, ctx: &mut Context<Self>) {
-        println!("Server disconnected");
-        ctx.stop()
-    }
-}
 
 impl<T: 'static> actix::io::WriteHandler<WsProtocolError> for ChatClient<T> where
     T: AsyncRead + AsyncWrite
