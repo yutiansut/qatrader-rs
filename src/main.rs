@@ -46,7 +46,8 @@ fn main() {
 
 
      qawebsocket::wsmain(
-         "ws://101.132.37.31:7988".to_string());
+         "ws://101.132.37.31:7988".to_string(),
+                "s01".to_string(), "s01".to_string());
 
     test_ndarray();
     test_datetime();
