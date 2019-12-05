@@ -59,12 +59,88 @@ pub fn wsmain(wsuri:String, user_name:String, password:String) {
     let _ = sys.run();
 }
 
-struct ChatClient<T>(SinkWrite<SplitSink<Framed<T, Codec>>>)
+use crate::qaeventmq;
+use crate::qaeventmq::{Publisher,Subscriber, Callback};
+
+pub fn QAtradeR(user_name : String, password: String, broker: String,
+                mongo_uri:String, ws_uri: String, eventmq_uri: String,) {
+
+
+    let sys = actix::System::new("qatrader");
+
+
+    Arbiter::spawn(lazy(|| {
+        Client::new()
+            .ws(ws_uri)
+            .connect()
+            .map_err(|e| {
+                println!("QAConnection Error: {}", e);
+            })
+            .map(|(response, framed)| {
+                println!("{:?}", response);
+                let (sink, stream) = framed.split();
+                let addr = ChatClient::create(|ctx| {
+                    ChatClient::add_stream(stream, ctx);
+                    ChatClient(SinkWrite::new(sink, ctx))
+                });
+
+                impl Callback for qaeventmq::QAEventMQ {
+                    fn callback(&mut self, message: String) -> Option<i32> {
+
+                        Some(1)
+
+                    }
+                }
+                let mut client = qaeventmq::QAEventMQ{
+                    amqp: eventmq_uri,
+                    exchange: "QAORDER_ROUTER".to_string(),
+                    model: "direct".to_string(),
+                    routing_key: user_name.clone(),
+                };
+                // start console loop loop
+                thread::spawn(move || {
+                    let login = ReqLogin {
+                        aid: "req_login".to_string(),
+                        bid: broker.clone(),
+                        user_name: user_name.clone(),
+                        password: password.clone(),};
+
+//                    if io::stdin().read_line(&mut cmd).is_err() {
+//                        println!("error");
+//                        return;
+//                    }
+                    let b = serde_json::to_string(&login).unwrap();
+                    addr.do_send(ClientCommand(b));
+
+
+
+
+                    thread::spawn(move || {
+                        client.subscribe_routing();
+                    });
+
+
+
+
+
+                });
+            })
+    }));
+
+    let _ = sys.run();
+
+
+}
+
+
+
+
+pub struct ChatClient<T>(SinkWrite<SplitSink<Framed<T, Codec>>>)
 where
     T: AsyncRead + AsyncWrite;
 
 #[derive(Message)]
-struct ClientCommand(String);
+pub struct ClientCommand(String);
 
 impl<T: 'static> Actor for ChatClient<T>
 where
@@ -155,20 +231,20 @@ impl<T: 'static> StreamHandler<Frame, WsProtocolError> for ChatClient<T>
 
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Peek {
+pub struct Peek {
     aid: String,
 }
 
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Broker {
+pub struct Broker {
     aid: String,
     brokers: Vec<String>,
     
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct ReqLogin {
+pub struct ReqLogin {
     aid: String,
     bid: String,
     user_name: String,
@@ -177,7 +253,7 @@ struct ReqLogin {
 
 
 #[derive(Serialize, Deserialize, Debug)]
-struct ReqOrder {
+pub struct ReqOrder {
     aid: String,
     user_id:String,
     order_id: String,
@@ -193,14 +269,14 @@ struct ReqOrder {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct ReqCancel {
+pub struct ReqCancel {
     aid: String,
     user_id:String,
     order_id: String
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct ReqQueryBank {
+pub struct ReqQueryBank {
     aid: String,
     bank_id: String,
     future_account: String,
@@ -210,14 +286,14 @@ struct ReqQueryBank {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct ReqQuerySettlement {
+pub struct ReqQuerySettlement {
     aid: String,
     trading_day: i32
 }
 
 
 #[derive(Serialize, Deserialize, Debug)]
-struct ReqChangePassword {
+pub struct ReqChangePassword {
     aid: String,
     old_password: String,
     new_password: String
@@ -225,7 +301,7 @@ struct ReqChangePassword {
 
 
 #[derive(Serialize, Deserialize, Debug)]
-struct ReqTransfer {
+pub struct ReqTransfer {
     aid: String,
     bank_id: String,
     future_account: String,
@@ -238,7 +314,7 @@ struct ReqTransfer {
 
 
 #[derive(Serialize, Deserialize, Debug)]
-struct RtnData {
+pub struct RtnData {
     aid: String,
     data: Vec<String>
 }

@@ -1,6 +1,7 @@
 pub mod qamongo;
 pub mod qawebsocket;
 pub mod qaeventmq;
+
 extern crate ndarray;
 
 extern crate chrono;
@@ -9,43 +10,49 @@ use ndarray::array;
 
 use std::time::Duration;
 use std::thread;
-use qaeventmq::Subscriber;
-use crate::qaeventmq::{Publisher, Callback};
+
+use crate::qaeventmq::{Publisher,Subscriber, Callback};
 
 fn main() {
 
-    qamongo::query_account("192.168.2.24".to_string(), "288870".to_string());
-    let mut puber = qaeventmq::QAEventMQ{
-        amqp: "amqp://admin:admin@192.168.2.24:5672/".to_string(),
-        exchange: "tick".to_string(),
-        model: "direct".to_string(),
-        routing_key: "rb2001".to_string()
-    };
+//    qamongo::query_account("192.168.2.24".to_string(), "288870".to_string());
+//    let mut puber = qaeventmq::QAEventMQ{
+//        amqp: "amqp://admin:admin@192.168.2.24:5672/".to_string(),
+//        exchange: "tick".to_string(),
+//        model: "direct".to_string(),
+//        routing_key: "rb2001".to_string()
+//    };
+//
+//
+//    let mut i = 1;
+//    thread::spawn(move|| {
+//        while i<1000 {
+//            puber.publish_routing("s".to_string());
+//            i+=1;
+//            thread::sleep(Duration::from_secs(1));
+//        }
+//    });
+//
+//    impl Callback for qaeventmq::QAEventMQ{
+//        fn callback(&mut self, message:String) ->  Option<i32>{
+//        println!("receive x! {}",message);
+//        Some(1)
+//    }
+//}
+//    let mut client = qaeventmq::QAEventMQ{
+//        amqp: "amqp://admin:admin@192.168.2.24:5672/".to_string(),
+//        exchange: "tick".to_string(),
+//        model: "direct".to_string(),
+//        routing_key: "rb2001".to_string()
+//    };
+//    client.subscribe_routing();
+//    println!("12212");
 
 
-    let mut i = 1;
-    thread::spawn(move|| {
-        while i<1000 {
-            puber.publish_routing("s".to_string());
-            i+=1;
-            thread::sleep(Duration::from_secs(1));
-        }
-    });
+    qawebsocket::QAtradeR(
+       "test1".to_string(),"test1".to_string(), "QUANTAXIS".to_string(), "192.168.2.24".to_string(),
+       "ws://192.168.2.118:7988".to_string(), "amqp://admin:admin@192.168.2.24:5672/".to_string());
 
-    impl Callback for qaeventmq::QAEventMQ{
-        fn callback(&mut self, message:String) ->  Option<i32>{
-        println!("receive x! {}",message);
-        Some(1)
-    }
-}
-    let mut client = qaeventmq::QAEventMQ{
-        amqp: "amqp://admin:admin@192.168.2.24:5672/".to_string(),
-        exchange: "tick".to_string(),
-        model: "direct".to_string(),
-        routing_key: "rb2001".to_string()
-    };
-    client.subscribe_routing();
-    println!("12212");
     // thread::sleep(Duration::from_secs(200));
 //    thread::spawn(move || {
 //        client.subscribe_routing();
@@ -77,25 +84,6 @@ fn main() {
 }
 
 
-
-fn qatrader(account_cookie:String, password:String, broker:String, wsuri:String){
-
-
-    let mut client = qaeventmq::QAEventMQ{
-        amqp: "amqp://admin:admin@192.168.2.118:5672/".to_string(),
-        exchange: "QAORDER_ROUTER".to_string(),
-        model: "direct".to_string(),
-        routing_key: account_cookie
-    };
-
-    thread::spawn(move || {
-        client.subscribe_routing();
-
-    });
-
-
-
-}
 
 
 fn test_ndarray() {
