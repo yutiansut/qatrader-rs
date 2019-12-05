@@ -75,8 +75,28 @@ pub fn QAtradeR(user_name : String, password: String, broker: String,
     /// 
     /// database is the only interface of account message exploruse
 
+    impl Callback for qaeventmq::QAEventMQ {
+        fn callback(&mut self, message: String) -> Option<i32> {
+            ///do somehing
+            /// 
+            let resx:Value = serde_json::from_str(&message).unwrap();
 
-    
+            if resx["topic"] == "send_order" {
+                println!("1")
+            }else if resx["topic"] == "cancel_order" {
+                println!("Cancel Order")
+            }          
+            Some(1)
+
+        }
+    }
+    let mut client = qaeventmq::QAEventMQ{
+        amqp: eventmq_uri,
+        exchange: "QAORDER_ROUTER".to_string(),
+        model: "direct".to_string(),
+        routing_key: user_name.clone(),
+    };
+
     Arbiter::spawn(lazy(|| {
         Client::new()
             .ws(ws_uri)
@@ -92,19 +112,7 @@ pub fn QAtradeR(user_name : String, password: String, broker: String,
                     ChatClient(SinkWrite::new(sink, ctx))
                 });
 
-                impl Callback for qaeventmq::QAEventMQ {
-                    fn callback(&mut self, message: String) -> Option<i32> {
 
-                        Some(1)
-
-                    }
-                }
-                let mut client = qaeventmq::QAEventMQ{
-                    amqp: eventmq_uri,
-                    exchange: "QAORDER_ROUTER".to_string(),
-                    model: "direct".to_string(),
-                    routing_key: user_name.clone(),
-                };
                 // start console loop loop
                 thread::spawn(move || {
                     let login = ReqLogin {
