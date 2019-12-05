@@ -1,5 +1,5 @@
 pub mod qamongo;
-
+pub mod qawebsocket;
 pub mod qaeventmq;
 extern crate ndarray;
 
@@ -7,6 +7,8 @@ extern crate chrono;
 use chrono::prelude::*;
 use ndarray::array;
 
+use std::time::Duration;
+use std::thread;
 use qaeventmq::Subscriber;
 use crate::qaeventmq::Publisher;
 
@@ -19,16 +21,32 @@ fn main() {
         model: "direct".to_string(),
         routing_key: "rb2001".to_string()
     };
-    puber.publish_routing("s".to_string());
+    let mut i = 1;
+    thread::spawn(move|| {
+        while i<1000 {
+            puber.publish_routing("s".to_string());
+            i+=1;
+            thread::sleep(Duration::from_secs(5));
+        }
+
+
+    });
+
     let mut client = qaeventmq::QAEventMQ{
         amqp: "amqp://admin:admin@192.168.2.118:5672/".to_string(),
         exchange: "tick".to_string(),
         model: "direct".to_string(),
         routing_key: "rb2001".to_string()
     };
-    client.subscribe_routing();
-    // qawebsockets::websocketclient::wsmain(
-    //     "ws://101.132.37.31:7988".to_string());
+
+    thread::spawn(move || {
+        client.subscribe_routing();
+
+    });
+
+
+     qawebsocket::wsmain(
+         "ws://101.132.37.31:7988".to_string());
 
     test_ndarray();
     test_datetime();
