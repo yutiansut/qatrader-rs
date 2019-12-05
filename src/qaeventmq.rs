@@ -23,12 +23,12 @@ pub trait Publisher {
 pub trait Callback {
     fn callback(&mut self,  message:String) -> Option<i32>;
 }
-impl Callback for QAEventMQ{
-    fn callback(&mut self, message:String) ->  Option<i32>{
-        println!("receive !! {}",message);
-        Some(1)
-    }
-}
+//impl Callback for QAEventMQ{
+//    fn callback(&mut self, message:String) ->  Option<i32>{
+//        println!("receive !! {}",message);
+//        Some(1)
+//    }
+//}
 impl Subscriber for QAEventMQ{
     fn subscribe_routing(&mut self) ->Result<()>{
         let mut connection = Connection::insecure_open(&self.amqp)?;

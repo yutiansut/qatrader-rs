@@ -1,7 +1,7 @@
 //! Simple websocket client.
 use serde::{Serialize, Deserialize};
 use std::time::Duration;
-use std::{io, thread};
+use std::{thread};
 
 use actix::io::SinkWrite;
 use actix::*;
@@ -40,9 +40,6 @@ pub fn wsmain(wsuri:String, user_name:String, password:String) {
 
                 // start console loop loop
                 thread::spawn(move || {
-                    let mut cmd = String::new();
-
-                    let peek = Peek { aid: "peek_message".to_string()};
                     let login = ReqLogin {
                         aid: "req_login".to_string(),
                         bid: "QUANTAXIS".to_string(),
@@ -118,11 +115,7 @@ impl<T: 'static> StreamHandler<Frame, WsProtocolError> for ChatClient<T>
             let aid = resx["aid"].to_string();
             let aid_patten = aid.as_str();
             let peek = Peek { aid: "peek_message".to_string()};
-            let login = ReqLogin {
-                aid: "req_login".to_string(),
-                bid: "QUANTAXIS".to_string(),
-                user_name: "133496".to_string(),
-                password: "QCHL1234".to_string()};
+
             println!("{:?}",aid_patten);
             match aid_patten {
                 "\"rtn_brokers\"" => {

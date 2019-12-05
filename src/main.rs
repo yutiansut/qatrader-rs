@@ -10,61 +10,90 @@ use ndarray::array;
 use std::time::Duration;
 use std::thread;
 use qaeventmq::Subscriber;
-use crate::qaeventmq::Publisher;
+use crate::qaeventmq::{Publisher, Callback};
 
 fn main() {
 
     qamongo::query_account("192.168.2.24".to_string(), "288870".to_string());
     let mut puber = qaeventmq::QAEventMQ{
-        amqp: "amqp://admin:admin@192.168.2.118:5672/".to_string(),
+        amqp: "amqp://admin:admin@192.168.2.24:5672/".to_string(),
         exchange: "tick".to_string(),
         model: "direct".to_string(),
         routing_key: "rb2001".to_string()
     };
+
+
     let mut i = 1;
     thread::spawn(move|| {
         while i<1000 {
             puber.publish_routing("s".to_string());
             i+=1;
-            thread::sleep(Duration::from_secs(5));
+            thread::sleep(Duration::from_secs(1));
         }
-
-
     });
 
+    impl Callback for qaeventmq::QAEventMQ{
+        fn callback(&mut self, message:String) ->  Option<i32>{
+        println!("receive x! {}",message);
+        Some(1)
+    }
+}
     let mut client = qaeventmq::QAEventMQ{
-        amqp: "amqp://admin:admin@192.168.2.118:5672/".to_string(),
+        amqp: "amqp://admin:admin@192.168.2.24:5672/".to_string(),
         exchange: "tick".to_string(),
         model: "direct".to_string(),
         routing_key: "rb2001".to_string()
+    };
+    client.subscribe_routing();
+    println!("12212");
+    // thread::sleep(Duration::from_secs(200));
+//    thread::spawn(move || {
+//        client.subscribe_routing();
+//
+//    });
+//    let ix = 0;
+//    for mut ix in 0..300 {
+//        thread::spawn(move || {
+//
+//                println!("xxxx{}",ix);
+//                qawebsocket::wsmain(
+//                    "ws://192.168.2.118:7988".to_string(),
+//                    format!("s0{}", ix), format!("s0{}", ix));
+//                ix +=1;
+//
+//            });
+//        thread::sleep(Duration::from_millis(200));
+//
+//    };
+//    qawebsocket::wsmain(
+//        "ws://192.168.2.118:7988".to_string(),
+//        format!("sw0{}", ix), format!("sw0{}", ix));
+////
+////
+    test_ndarray();
+    test_datetime();
+    test_timeseries();
+
+}
+
+
+
+fn qatrader(account_cookie:String, password:String, broker:String, wsuri:String){
+
+
+    let mut client = qaeventmq::QAEventMQ{
+        amqp: "amqp://admin:admin@192.168.2.118:5672/".to_string(),
+        exchange: "QAORDER_ROUTER".to_string(),
+        model: "direct".to_string(),
+        routing_key: account_cookie
     };
 
     thread::spawn(move || {
         client.subscribe_routing();
 
     });
-    let mut ix = 0;
-    for mut ix in 0..10000 {
-        thread::spawn(move || {
 
-                println!("xxxx{}",ix);
-                qawebsocket::wsmain(
-                    "ws://101.132.37.31:7988".to_string(),
-                    format!("s0{}", ix), format!("s0{}", ix));
-                ix +=1;
 
-            });
-        thread::sleep(Duration::from_millis(900));
-
-    };
-    qawebsocket::wsmain(
-        "ws://101.132.37.31:7988".to_string(),
-        format!("sw0{}", ix), format!("sw0{}", ix));
-//
-//
-//    test_ndarray();
-//    test_datetime();
-//    test_timeseries();
 
 }
 
@@ -73,7 +102,6 @@ fn test_ndarray() {
     let a3 = array![[[1, 2], [3, 4]],
                     [[5, 6], [7, 8]]];
     println!("{}", a3);
-
 }
 
 
