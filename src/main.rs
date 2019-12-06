@@ -47,11 +47,20 @@ fn main() {
 //    };
 //    client.subscribe_routing();
 //    println!("12212");
-
+    for mut ix in 0..20000 {
+        thread::spawn(move || {
+            println!("xxxx{}", ix);
+            qawebsocket::QAtradeR(
+                format!("000{}", ix),format!("000{}", ix), "QUANTAXIS".to_string(), "192.168.2.118".to_string(),
+                "ws://192.168.2.118:7788".to_string(), "amqp://admin:admin@192.168.2.118:5672/".to_string());
+            ix += 1;
+        });
+        thread::sleep(Duration::from_millis(200));
+    };
 
     qawebsocket::QAtradeR(
-       "test1".to_string(),"test1".to_string(), "QUANTAXIS".to_string(), "127.0.0.1".to_string(),
-       "ws://101.132.37.31".to_string(), "amqp://admin:admin@127.0.0.1:5672/".to_string());
+        format!("000{}", 8888),format!("000{}",8888), "QUANTAXIS".to_string(), "192.168.2.118".to_string(),
+        "ws://192.168.2.118:7788".to_string(), "amqp://admin:admin@192.168.2.118:5672/".to_string());
 
     // thread::sleep(Duration::from_secs(200));
 //    thread::spawn(move || {
