@@ -1,174 +1,79 @@
 //! Simple websocket client.
 use serde::{Serialize, Deserialize};
 use std::time::Duration;
-use std::{thread};
-
-use actix::io::SinkWrite;
-use actix::*;
-use actix_codec::{AsyncRead, AsyncWrite, Framed};
-use awc::{
-    error::WsProtocolError,
-    ws::{Codec, Frame, Message},
-    Client,
-};
-use futures::{
-    lazy,
-    stream::{SplitSink, Stream},
-    Future,
-};
+use std::thread;
 
 
-pub fn wsmain(wsuri:String, user_name:String, password:String) {
+use wsq::{connect, Handler, Handshake, Message, Result};
+use wsq::Sender;
 
-    let sys = actix::System::new("ws-example");
+pub struct QAtradeR{
+    pub out: Sender,
+    pub user_name : String,
+    pub password: String,
+    pub broker: String,
 
-
-    Arbiter::spawn(lazy(|| {
-        Client::new()
-            .ws(wsuri)
-            .connect()
-            .map_err(|e| {
-                println!("QAConnection Error: {}", e);
-            })
-            .map(|(response, framed)| {
-                println!("{:?}", response);
-                let (sink, stream) = framed.split();
-                let addr = ChatClient::create(|ctx| {
-                    ChatClient::add_stream(stream, ctx);
-                    ChatClient(SinkWrite::new(sink, ctx))
-                });
-
-                // start console loop loop
-                thread::spawn(move || {
-                    let login = ReqLogin {
-                        aid: "req_login".to_string(),
-                        bid: "QUANTAXIS".to_string(),
-                        user_name,
-                        password,};
-
-//                    if io::stdin().read_line(&mut cmd).is_err() {
-//                        println!("error");
-//                        return;
-//                    }
-                    let b = serde_json::to_string(&login).unwrap();
-                    addr.do_send(ClientCommand(b));
-                });
-            })
-    }));
-
-    let _ = sys.run();
 }
 
-struct ChatClient<T>(SinkWrite<SplitSink<Framed<T, Codec>>>)
-where
-    T: AsyncRead + AsyncWrite;
 
-#[derive(Message)]
-struct ClientCommand(String);
 
-impl<T: 'static> Actor for ChatClient<T>
-where
-    T: AsyncRead + AsyncWrite,
-{
-    type Context = Context<Self>;
+impl Handler for QAtradeR{
 
-    fn started(&mut self, ctx: &mut Context<Self>) {
-        // start heartbeats otherwise server will disconnect after 10 seconds
-        self.hb(ctx)
+
+    fn on_open(&mut self, handshake: Handshake) -> Result<()> {
+        println!("Hello to peer: {}", handshake.peer_addr.unwrap());
+
+        let login = ReqLogin {
+            aid: "req_login".to_string(),
+            bid: self.broker.clone(),
+            user_name: self.user_name.clone(),
+            password: self.password.clone(),};
+
+        let b = serde_json::to_string(&login).unwrap();
+        println!("{}", b);
+        self.out.send(b).unwrap();
+
+        Ok(())
     }
 
-    fn stopped(&mut self, _: &mut Context<Self>) {
-        println!("Disconnected");
 
-        // Stop application on disconnect
-        System::current().stop();
-    }
-}
 
-impl<T: 'static> ChatClient<T>
-where
-    T: AsyncRead + AsyncWrite,
-{
-    fn hb(&self, ctx: &mut Context<Self>) {
-        ctx.run_later(Duration::new(1, 0), |act, ctx| {
-            act.0.write(Message::Ping(String::new())).unwrap();
-            act.hb(ctx);
 
-            // client should also check for a timeout here, similar to the
-            // server code
-        });
-    }
-}
-
-impl<T: 'static> StreamHandler<Frame, WsProtocolError> for ChatClient<T>
-    where
-        T: AsyncRead + AsyncWrite,
-{
-    fn handle(&mut self, msg: Frame, _ctx: &mut Context<Self>) {
-
-        if let Frame::Text(txt) = msg {
-            let res =  txt.unwrap();
-            let xu = std::str::from_utf8(&res).unwrap();
-            println!("{:?}",xu);
-            let resx:Value = serde_json::from_str(&xu).unwrap();
-
-            let aid = resx["aid"].to_string();
-            let aid_patten = aid.as_str();
+    fn on_message(&mut self, msg: Message) -> Result<()> {
+        if let Message::Text(message_text) = msg {
+            println!("{}", message_text);
             let peek = Peek { aid: "peek_message".to_string()};
+            let b = serde_json::to_string(&peek).unwrap();
+            self.out.send(b).unwrap();
 
-            println!("{:?}",aid_patten);
-            match aid_patten {
-                "\"rtn_brokers\"" => {
-
-                    println!("{:?}", peek);
-                    let b = serde_json::to_string(&peek).unwrap();
-                    println!("{:?}",b);
-                    self.0.write(Message::Text(b)).unwrap();
-
-//
-//                    println!("{:?}", login);
-//                    let b = serde_json::to_string(&login).unwrap();
-//                    println!("{:?}",b);
-//                    self.0.write(Message::Text(b)).unwrap();
-                },
-                "\"rtn_data\"" | "\"rtn_condition_orders\"" => {
-                    println!("xxx");
-                    let b = serde_json::to_string(&peek).unwrap();
-                    println!("{:?}",b);
-                    self.0.write(Message::Text(b)).unwrap();
-                },
-                _ => println!("blahh blahhh"),
-            }
         }
+
+
+        Ok(())
     }
 
-    fn started(&mut self, _ctx: &mut Context<Self>) {
-        println!("Connected");
-    }
 
-    fn finished(&mut self, ctx: &mut Context<Self>) {
-        println!("Server disconnected");
-        ctx.stop()
-    }
+
+
 }
 
 
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Peek {
+pub struct Peek {
     aid: String,
 }
 
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Broker {
+pub struct Broker {
     aid: String,
     brokers: Vec<String>,
     
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct ReqLogin {
+pub struct ReqLogin {
     aid: String,
     bid: String,
     user_name: String,
@@ -177,7 +82,7 @@ struct ReqLogin {
 
 
 #[derive(Serialize, Deserialize, Debug)]
-struct ReqOrder {
+pub struct ReqOrder {
     aid: String,
     user_id:String,
     order_id: String,
@@ -193,14 +98,14 @@ struct ReqOrder {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct ReqCancel {
+pub struct ReqCancel {
     aid: String,
     user_id:String,
     order_id: String
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct ReqQueryBank {
+pub struct ReqQueryBank {
     aid: String,
     bank_id: String,
     future_account: String,
@@ -210,14 +115,14 @@ struct ReqQueryBank {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct ReqQuerySettlement {
+pub struct ReqQuerySettlement {
     aid: String,
     trading_day: i32
 }
 
 
 #[derive(Serialize, Deserialize, Debug)]
-struct ReqChangePassword {
+pub struct ReqChangePassword {
     aid: String,
     old_password: String,
     new_password: String
@@ -225,7 +130,7 @@ struct ReqChangePassword {
 
 
 #[derive(Serialize, Deserialize, Debug)]
-struct ReqTransfer {
+pub struct ReqTransfer {
     aid: String,
     bank_id: String,
     future_account: String,
@@ -238,30 +143,7 @@ struct ReqTransfer {
 
 
 #[derive(Serialize, Deserialize, Debug)]
-struct RtnData {
+pub struct RtnData {
     aid: String,
     data: Vec<String>
-}
-
-use serde_json::value::Value;
-
-
-/// Handle stdin commands
-impl<T: 'static> Handler<ClientCommand> for ChatClient<T>
-where
-    T: AsyncRead + AsyncWrite,
-{
-    type Result = ();
-    
-    fn handle(&mut self, msg: ClientCommand, _ctx: &mut Context<Self>) {
-        self.0.write(Message::Text(msg.0)).unwrap();
-    }
-}
-
-/// Handle server websocket messages
-
-
-impl<T: 'static> actix::io::WriteHandler<WsProtocolError> for ChatClient<T> where
-    T: AsyncRead + AsyncWrite
-{
 }
