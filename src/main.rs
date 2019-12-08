@@ -39,18 +39,6 @@ fn main() {
     }
     let user_name = "000001".to_string();
 
-
-
-//
-//    connect("ws://101.132.37.31:7988", |out| {
-//        qawebsocket::QAtradeR{
-//            user_name: user_name.clone(),
-//            password: user_name.clone(),
-//            broker:"QUANTAXIS".to_string(),
-//            out:out,
-//            recv: r1.clone()
-//        }});
-////
     let mut ws = WebSocket::new(move |out| {
         qawebsocket::QAtradeR{
             user_name: user_name.clone(),
@@ -70,7 +58,7 @@ fn main() {
             let data = r1.recv().unwrap();
 
             println!("receive !!{:?}",data);
-            sender.send(format!("{}", data));
+            sender.send(format!("{}", data)).unwrap();
 
         }
 

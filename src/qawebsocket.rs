@@ -31,7 +31,7 @@ impl Handler for QAtradeR{
 
         let b = serde_json::to_string(&login).unwrap();
         println!("{}", b);
-        self.out.send(b);
+        self.out.send(b).unwrap();
 
         Ok(())
     }
@@ -44,7 +44,7 @@ impl Handler for QAtradeR{
             println!("{}", message_text);
             let peek = Peek { aid: "peek_message".to_string()};
             let b = serde_json::to_string(&peek).unwrap();
-            self.out.send(b);
+            self.out.send(b).unwrap();
 
         }
 
