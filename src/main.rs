@@ -12,8 +12,7 @@ use ndarray::array;
 use std::thread;
 use std::borrow::BorrowMut;
 extern crate crossbeam_utils;
-#[macro_use]
-extern crate crossbeam_channel;
+
 use crossbeam_channel::bounded;
 use crossbeam_utils::thread::scope;
 
@@ -22,7 +21,7 @@ fn main() {
 
 
     let (s1, r1) = bounded(0);
-    let (s2, r2) = (s1.clone(), r1.clone());
+
     let user_name = "000001".to_string();
 
     {
