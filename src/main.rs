@@ -3,89 +3,50 @@ pub mod qawebsocket;
 pub mod qaeventmq;
 
 extern crate ndarray;
-
+use ws::{connect};
 extern crate chrono;
 use chrono::prelude::*;
 use ndarray::array;
-
-use std::time::Duration;
+use std::sync::mpsc::channel;
 use std::thread;
 
-use crate::qaeventmq::{Publisher,Subscriber, Callback};
+
 
 fn main() {
 
-//    qamongo::query_account("192.168.2.24".to_string(), "288870".to_string());
-//    let mut puber = qaeventmq::QAEventMQ{
-//        amqp: "amqp://admin:admin@192.168.2.24:5672/".to_string(),
-//        exchange: "tick".to_string(),
-//        model: "direct".to_string(),
-//        routing_key: "rb2001".to_string()
-//    };
-//
-//
-//    let mut i = 1;
-//    thread::spawn(move|| {
-//        while i<1000 {
-//            puber.publish_routing("s".to_string());
-//            i+=1;
-//            thread::sleep(Duration::from_secs(1));
-//        }
-//    });
-//
-//    impl Callback for qaeventmq::QAEventMQ{
-//        fn callback(&mut self, message:String) ->  Option<i32>{
-//        println!("receive x! {}",message);
-//        Some(1)
-//    }
-//}
-//    let mut client = qaeventmq::QAEventMQ{
-//        amqp: "amqp://admin:admin@192.168.2.24:5672/".to_string(),
-//        exchange: "tick".to_string(),
-//        model: "direct".to_string(),
-//        routing_key: "rb2001".to_string()
-//    };
-//    client.subscribe_routing();
-//    println!("12212");
-    for mut ix in 0..20000 {
+
+    let (ws_event_tx, ws_event_rx) = channel();
+    let user_name = "000001".to_string();
+
+    {
+        let event_tx = ws_event_tx.clone();
         thread::spawn(move || {
-            println!("xxxx{}", ix);
-            qawebsocket::QAtradeR(
-                format!("000{}", ix),format!("000{}", ix), "QUANTAXIS".to_string(), "192.168.2.118".to_string(),
-                "ws://192.168.2.118:7788".to_string(), "amqp://admin:admin@192.168.2.118:5672/".to_string());
-            ix += 1;
+            let mut client = qaeventmq::QAEventMQ{
+                amqp: "amqp://admin:admin@127.0.0.1:5672/".to_string(),
+                exchange: "QAORDER_ROUTER".to_string(),
+                model: "direct".to_string(),
+                routing_key: user_name.clone(),
+            };
+            println!("xxx");
+            qaeventmq::QAEventMQ::consume(client, event_tx).unwrap();
         });
-        thread::sleep(Duration::from_millis(200));
-    };
+    }
+    let user_name = "000001".to_string();
+    thread::spawn(|| {
+        connect("ws://www.yutiansut.com:7788", move |out| {
+            qawebsocket::QAtradeR{
+                user_name: user_name.clone(),
+                password: user_name.clone(),
+                broker:"QUANTAXIS".to_string(),
+                out:out
+            }
 
-    qawebsocket::QAtradeR(
-        format!("000{}", 8888),format!("000{}",8888), "QUANTAXIS".to_string(), "192.168.2.118".to_string(),
-        "ws://192.168.2.118:7788".to_string(), "amqp://admin:admin@192.168.2.118:5672/".to_string());
+        }).unwrap()
+    });
+    qawebsocket::QAtradeR::start(ws_event_rx);
+    println!("trader");
 
-    // thread::sleep(Duration::from_secs(200));
-//    thread::spawn(move || {
-//        client.subscribe_routing();
-//
-//    });
-//    let ix = 0;
-//    for mut ix in 0..300 {
-//        thread::spawn(move || {
-//
-//                println!("xxxx{}",ix);
-//                qawebsocket::wsmain(
-//                    "ws://192.168.2.118:7988".to_string(),
-//                    format!("s0{}", ix), format!("s0{}", ix));
-//                ix +=1;
-//
-//            });
-//        thread::sleep(Duration::from_millis(200));
-//
-//    };
-//    qawebsocket::wsmain(
-//        "ws://192.168.2.118:7988".to_string(),
-//        format!("sw0{}", ix), format!("sw0{}", ix));
-////
-////
+
     test_ndarray();
     test_datetime();
     test_timeseries();
@@ -146,29 +107,6 @@ fn test_datetime() {
     println!("{}", dt);
     println!("{}", fixed_dt);
 }
-
-
-// fn test_pyo3() -> Result<(), ()> {
-//     let gil = Python::acquire_gil();
-//     test_pyo3_(gil.python()).map_err(|e| {
-//         eprintln!("error! :{:?}", e);
-//         // we can't display python error type via ::std::fmt::Display
-//         // so print error here manually
-//         e.print_and_set_sys_last_vars(gil.python());
-//     })
-// }
-
-// fn test_pyo3_<'py>(py: Python<'py>) -> PyResult<()> {
-//     let np = py.import("numpy")?;
-//     let dict = PyDict::new(py);
-//     dict.set_item("np", np)?;
-//     let pyarray: &PyArray1<i32> = py
-//         .eval("np.absolute(np.array([-1, -2, -3], dtype='int32'))", Some(&dict), None)?
-//         .extract()?;
-//     let slice = pyarray.as_slice()?;
-//     assert_eq!(slice, &[1, 2, 3]);
-//     Ok(())
-// }
 
 
 

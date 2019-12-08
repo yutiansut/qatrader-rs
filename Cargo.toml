@@ -26,12 +26,4 @@ serde_derive = "1.0"
 serde = { version = "1.0", features = ["derive"] } # 序列化
 rayon = "1.1" # 多线程
 ndarray = "0.13.0" # ndarray
-actix-web = "2.0.0-alpha.1"
-actix = "0.8.2"
-actix-codec = "0.1.2"
-actix-web-actors = "1.0.0"
-actix-files = "0.1.1"
-awc = "0.2.8"
-json = "*"
-bytes = "0.4"
-tokio = "*"
+ws = "0.7.8"
