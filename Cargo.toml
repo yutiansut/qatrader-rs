@@ -1,6 +1,6 @@
 [package]
 name = "qatrader-rs"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["yutiansut <yutiansut@qq.com>"]
 edition = "2018"
 description = "Quantitative Financial Framework"
