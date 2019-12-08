@@ -3,23 +3,30 @@ pub mod qawebsocket;
 pub mod qaeventmq;
 
 extern crate ndarray;
-use ws::{connect};
+use wsq::{connect, WebSocket, Error, ErrorKind};
+
 extern crate chrono;
 use chrono::prelude::*;
 use ndarray::array;
-use std::sync::mpsc::channel;
-use std::thread;
 
+use std::thread;
+use std::borrow::BorrowMut;
+extern crate crossbeam_utils;
+#[macro_use]
+extern crate crossbeam_channel;
+use crossbeam_channel::bounded;
+use crossbeam_utils::thread::scope;
 
 
 fn main() {
 
 
-    let (ws_event_tx, ws_event_rx) = channel();
+    let (s1, r1) = bounded(0);
+    let (s2, r2) = (s1.clone(), r1.clone());
     let user_name = "000001".to_string();
 
     {
-        let event_tx = ws_event_tx.clone();
+
         thread::spawn(move || {
             let mut client = qaeventmq::QAEventMQ{
                 amqp: "amqp://admin:admin@127.0.0.1:5672/".to_string(),
@@ -28,22 +35,68 @@ fn main() {
                 routing_key: user_name.clone(),
             };
             println!("xxx");
-            qaeventmq::QAEventMQ::consume(client, event_tx).unwrap();
+            qaeventmq::QAEventMQ::consume(client, s1).unwrap();
         });
     }
     let user_name = "000001".to_string();
-    thread::spawn(|| {
-        connect("ws://www.yutiansut.com:7788", move |out| {
-            qawebsocket::QAtradeR{
-                user_name: user_name.clone(),
-                password: user_name.clone(),
-                broker:"QUANTAXIS".to_string(),
-                out:out
-            }
 
-        }).unwrap()
+
+
+//
+//    connect("ws://101.132.37.31:7988", |out| {
+//        qawebsocket::QAtradeR{
+//            user_name: user_name.clone(),
+//            password: user_name.clone(),
+//            broker:"QUANTAXIS".to_string(),
+//            out:out,
+//            recv: r1.clone()
+//        }});
+////
+    let mut ws = WebSocket::new(move |out| {
+        qawebsocket::QAtradeR{
+            user_name: user_name.clone(),
+            password: user_name.clone(),
+            broker:"QUANTAXIS".to_string(),
+            out:out,
+
+        }}
+
+    ).unwrap();
+
+
+    let sender = ws.handler.sender().clone();
+    thread::spawn(move||{
+
+        loop{
+            let data = r1.recv().unwrap();
+
+            println!("receive !!{:?}",data);
+            sender.send(format!("{}", data));
+
+        }
+
     });
-    qawebsocket::QAtradeR::start(ws_event_rx);
+    let parsed ="ws://101.132.37.31:7988";
+    ws.connect(parsed.parse().unwrap()).unwrap();
+
+
+    ws.handler.run(ws.poll.borrow_mut());
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     println!("trader");
 
 

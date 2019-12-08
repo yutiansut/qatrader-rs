@@ -4,8 +4,8 @@ use amiquip::{
     QueueDeclareOptions, Result, Publish
 };
 use amiquip::Delivery;
-use std::sync::mpsc::Sender;
 
+use crossbeam_channel::Sender;
 pub struct QAEventMQ{pub amqp : String,
    pub exchange: String,
     pub model: String,

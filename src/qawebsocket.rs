@@ -2,11 +2,10 @@
 use serde::{Serialize, Deserialize};
 use std::time::Duration;
 use std::thread;
-use std::sync::mpsc::Receiver;
 
-use ws::{connect, Handler, Handshake, Message, Result};
-use ws::Sender;
 
+use wsq::{connect, Handler, Handshake, Message, Result};
+use wsq::Sender;
 
 pub struct QAtradeR{
     pub out: Sender,
@@ -16,15 +15,7 @@ pub struct QAtradeR{
 
 }
 
-impl QAtradeR{
-    pub fn start(&mut self,event_rx: Receiver<String>){
-        loop {
-            let data =  event_rx.recv().unwrap();
-            println!("{:?}",data);
-            self.out.send(format!("{}", data));
-        }
-    }
-}
+
 
 impl Handler for QAtradeR{
 
@@ -39,6 +30,7 @@ impl Handler for QAtradeR{
             password: self.password.clone(),};
 
         let b = serde_json::to_string(&login).unwrap();
+        println!("{}", b);
         self.out.send(b);
 
         Ok(())
@@ -49,6 +41,7 @@ impl Handler for QAtradeR{
 
     fn on_message(&mut self, msg: Message) -> Result<()> {
         if let Message::Text(message_text) = msg {
+            println!("{}", message_text);
             let peek = Peek { aid: "peek_message".to_string()};
             let b = serde_json::to_string(&peek).unwrap();
             self.out.send(b);
