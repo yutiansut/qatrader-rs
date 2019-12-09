@@ -15,7 +15,7 @@ extern crate crossbeam_utils;
 
 use crossbeam_channel::bounded;
 use crossbeam_utils::thread::scope;
-use crate::qawebsocket::{ReqOrder, ReqCancel, ReqTransfer};
+use crate::qawebsocket::{ReqOrder, ReqCancel, ReqTransfer, Peek, ReqChangePassword, ReqQueryBank, ReqQuerySettlement};
 use serde_json::value::Value;
 extern crate uuid;
 use uuid::Uuid;
@@ -104,19 +104,59 @@ fn main() {
                 "transfer" => {
                     let transfermsg = ReqTransfer {
                         aid: "req_transfer".to_string(),
-                        bank_id: "".to_string(),
-                        future_account: "".to_string(),
-                        future_password: "".to_string(),
-                        bank_password: "".to_string(),
-                        currency: "".to_string(),
-                        amount: 0.0
+                        bank_id: resx["bank_id"].as_str().unwrap().parse().unwrap(),
+                        future_account: resx["account_cookie"].as_str().unwrap().parse().unwrap(),
+                        future_password: resx["future_password"].as_str().unwrap().parse().unwrap(),
+                        bank_password: resx["bank_password"].as_str().unwrap().parse().unwrap(),
+                        currency: "CNY".to_string(),
+                        amount: resx["account_cookie"].as_f64().unwrap()
                     };
                     let b = serde_json::to_string(&transfermsg).unwrap();
-                    println!("Pretend to send cancel {:?}", b);
+                    println!("Pretend to send transfer {:?}", b);
 
                     sender.send(b).unwrap();
                 }
+                "query_settlement" => {
+                    let qsettlementmsg = ReqQuerySettlement{
+                        aid: "qry_settlement_info".to_string(),
+                        trading_day: resx["trading_day"].as_i32().unwrap()
+                    };
+                    let b = serde_json::to_string(&qsettlementmsg).unwrap();
+                    println!("Pretend to send QuerySettlement {:?}", b);
 
+                    sender.send(b).unwrap();
+                }
+                "query_bank" => {
+                    let qbankmsg = ReqQueryBank{
+                        aid: "qry_bankcapital".to_string(),
+                        bank_id: resx["bank_id"].as_str().unwrap().parse().unwrap(),
+                        future_account: resx["account_cookie"].as_str().unwrap().parse().unwrap(),
+                        future_password: resx["future_password"].as_str().unwrap().parse().unwrap(),
+                        bank_password: resx["bank_password"].as_str().unwrap().parse().unwrap(),
+                        currency: "CNY".to_string()
+                    };
+                    let b = serde_json::to_string(&qbankmsg).unwrap();
+                    println!("Pretend to send QueryBank {:?}", b);
+
+                    sender.send(b).unwrap();
+                }
+                "change_password" => {
+                    let changepwdmsg = ReqChangePassword{
+                        aid: "change_password".to_string(),
+                        old_password: resx["old_password"].as_str().unwrap().parse().unwrap(),
+                        new_password: resx["new_password"].as_str().unwrap().parse().unwrap()
+                    };
+                    let b = serde_json::to_string(&changepwdmsg).unwrap();
+                    println!("Pretend to send ChangePassword {:?}", b);
+
+                    sender.send(b).unwrap();
+                }
+                "peek" => {
+                    let peek = Peek { aid: "peek_message".to_string()};
+                    let b = serde_json::to_string(&peek).unwrap();
+                    println!("Pretend to send Peek {:?}", b);
+                    sender.send(b).unwrap();
+                }
                 _ => {
                     println!("non receive! {:?}", resx)
                 }
