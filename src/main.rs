@@ -32,7 +32,7 @@ fn main() {
 
         thread::spawn(move || {
             let mut client = qaeventmq::QAEventMQ{
-                amqp: "amqp://admin:admin@192.168.2.118:5672/".to_string(),
+                amqp: "amqp://admin:admin@127.0.0.1:5672/".to_string(),
                 exchange: "QAORDER_ROUTER".to_string(),
                 model: "direct".to_string(),
                 routing_key: user_name.clone(),
@@ -41,13 +41,14 @@ fn main() {
             qaeventmq::QAEventMQ::consume(client, s1).unwrap();
         });
     }
-    let user_name = "000002".to_string();
+    let user_name = "133495".to_string();
+    let password = "QCHL1234".to_string();
 
     let mut ws = WebSocket::new(move |out| {
         qawebsocket::QAtradeR{
             user_name: user_name.clone(),
-            password: user_name.clone(),
-            broker:"QUANTAXIS".to_string(),
+            password: password.clone(),
+            broker:"simnow".to_string(),
             out:out,
 
         }}
