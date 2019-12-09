@@ -61,89 +61,89 @@ impl Handler for QAtradeR{
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Peek {
-    aid: String,
+    pub aid: String,
 }
 
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Broker {
-    aid: String,
-    brokers: Vec<String>,
+    pub aid: String,
+    pub brokers: Vec<String>,
     
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ReqLogin {
-    aid: String,
-    bid: String,
-    user_name: String,
-    password: String
+    pub aid: String,
+    pub bid: String,
+    pub user_name: String,
+    pub password: String
 }
 
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ReqOrder {
-    aid: String,
-    user_id:String,
-    order_id: String,
-    exchange_id: String,
-    instrument_id: String,
-    direction: String,
-    offset: String,
-    volume: String,
-    price_type: String,
-    limit_price: String,
-    volume_condition: String,
-    time_condition: String,
+    pub aid: String,
+    pub user_id:String,
+    pub order_id: String,
+    pub exchange_id: String,
+    pub instrument_id: String,
+    pub direction: String,
+    pub offset: String,
+    pub volume: i64,
+    pub price_type: String,
+    pub limit_price: f64,
+    pub volume_condition: String,
+    pub time_condition: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ReqCancel {
-    aid: String,
-    user_id:String,
-    order_id: String
+    pub aid: String,
+    pub user_id:String,
+    pub order_id: String
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ReqQueryBank {
-    aid: String,
-    bank_id: String,
-    future_account: String,
-    future_password: String,
-    bank_password: String,
-    currency: String
+    pub aid: String,
+    pub bank_id: String,
+    pub future_account: String,
+    pub future_password: String,
+    pub bank_password: String,
+    pub currency: String
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ReqQuerySettlement {
-    aid: String,
-    trading_day: i32
+    pub aid: String,
+    pub trading_day: i32
 }
 
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ReqChangePassword {
-    aid: String,
-    old_password: String,
-    new_password: String
+    pub aid: String,
+    pub old_password: String,
+    pub new_password: String
 }
 
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ReqTransfer {
-    aid: String,
-    bank_id: String,
-    future_account: String,
-    future_password: String,
-    bank_password: String,
-    currency: String,
-    amount: f64
+    pub aid: String,
+    pub bank_id: String,
+    pub future_account: String,
+    pub future_password: String,
+    pub bank_password: String,
+    pub currency: String,
+    pub amount: f64
 
 }
 
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct RtnData {
-    aid: String,
-    data: Vec<String>
+    pub aid: String,
+    pub data: Vec<String>
 }
