@@ -119,7 +119,7 @@ fn main() {
                 "query_settlement" => {
                     let qsettlementmsg = ReqQuerySettlement{
                         aid: "qry_settlement_info".to_string(),
-                        trading_day: resx["trading_day"].as_i32().unwrap()
+                        trading_day: resx["trading_day"].as_i64().unwrap()
                     };
                     let b = serde_json::to_string(&qsettlementmsg).unwrap();
                     println!("Pretend to send QuerySettlement {:?}", b);

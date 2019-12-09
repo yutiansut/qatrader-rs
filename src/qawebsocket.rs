@@ -117,7 +117,7 @@ pub struct ReqQueryBank {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ReqQuerySettlement {
     pub aid: String,
-    pub trading_day: i32
+    pub trading_day: i64
 }
 
 
