@@ -1,5 +1,5 @@
 [package]
-name = "qatrader-rs"
+name = "qatrader_rs"
 version = "0.2.0"
 authors = ["yutiansut <yutiansut@qq.com>"]
 edition = "2018"
@@ -30,3 +30,4 @@ wsq = '0.9.1'
 crossbeam = "0.7"
 crossbeam-channel = "0.4"
 crossbeam-utils = "0.7"
+uuid = { version = "0.8", features = ["serde", "v4"] }
