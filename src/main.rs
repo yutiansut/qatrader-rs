@@ -23,39 +23,29 @@ use serde::Deserializer;
 
 fn main() {
 
-
     let (s1, r1) = bounded(0);
-
-    let user_name = "000002".to_string();
-
+    let user_name = "133495".to_string();
+    let password = "QCHL1234".to_string();
     {
-
         thread::spawn(move || {
-            let mut client = qaeventmq::QAEventMQ{
+            let client = qaeventmq::QAEventMQ{
                 amqp: "amqp://admin:admin@127.0.0.1:5672/".to_string(),
                 exchange: "QAORDER_ROUTER".to_string(),
                 model: "direct".to_string(),
                 routing_key: user_name.clone(),
             };
-            println!("xxx");
             qaeventmq::QAEventMQ::consume(client, s1).unwrap();
         });
     }
     let user_name = "133495".to_string();
-    let password = "QCHL1234".to_string();
-
     let mut ws = WebSocket::new(move |out| {
         qawebsocket::QAtradeR{
             user_name: user_name.clone(),
             password: password.clone(),
             broker:"simnow".to_string(),
             out:out,
-
         }}
-
     ).unwrap();
-
-
     let sender = ws.handler.sender().clone();
     thread::spawn(move||{
 
@@ -167,34 +157,10 @@ fn main() {
         }
 
     });
-    let parsed ="ws://101.132.37.31:7988";
+    let parsed ="ws://192.168.2.22:7988";
     ws.connect(parsed.parse().unwrap()).unwrap();
-
-
     ws.handler.run(ws.poll.borrow_mut());
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     println!("trader");
-
-
-    test_ndarray();
-    test_datetime();
-    test_timeseries();
-
 }
 
 
