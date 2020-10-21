@@ -1,7 +1,9 @@
+# 写入数据库
 [mongo]
 uri= "mongodb://localhost:27017"
 db= "QAREALTIME"
 
+# 接收order
 [mq]
 uri= "amqp://admin:admin@192.168.2.125:5672/"
 exchange= "QAORDER_ROUTER"

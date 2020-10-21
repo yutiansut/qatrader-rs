@@ -8,7 +8,7 @@ appenders:
     encoder:
       pattern: "[{d(%Y-%m-%d %H:%M:%S)}] [{l}] [thread:{I}] [{f}] [{t}]: {m}{n}"
 root:
-  level: debug
+  level: debug   # debug,info ,warn
   appenders:
     - stdout
     - requests

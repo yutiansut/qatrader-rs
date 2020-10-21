@@ -40,3 +40,11 @@ rustup install nightly
 cargo +nightly build
 
 ```
+
+运行：
+
+```
+cargo run --release conf\boot.toml
+
+```
+
