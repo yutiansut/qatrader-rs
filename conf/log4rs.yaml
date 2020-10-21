@@ -1,0 +1,22 @@
+refresh_rate: 180 seconds
+appenders:
+  stdout:
+    kind: console
+  requests:
+    kind: file
+    path: "log/qatrader.log"
+    encoder:
+      pattern: "[{d(%Y-%m-%d %H:%M:%S)}] [{l}] [thread:{I}] [{f}] [{t}]: {m}{n}"
+root:
+  level: debug
+  appenders:
+    - stdout
+    - requests
+loggers:
+  app::backend::db:
+    level: info
+  app::requests:
+    level: info
+    appenders:
+      - requests
+    additive: false

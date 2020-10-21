@@ -1,71 +1,42 @@
-extern crate mongodb;
-use mongodb::{Bson, bson, doc};
-use mongodb::{Client, ThreadedClient};
-use mongodb::db::ThreadedDatabase;
-pub fn query_account(mongo_ip:String, account_cookie:String) {
-    let client = Client::connect(&mongo_ip, 27017)
-        .expect("Failed to initialize standalone client.");
+use mongodb::{Client, Collection};
+use mongodb::options::UpdateOptions;
+use serde::Serialize;
+use bson::{to_bson, Document, doc};
+use lazy_static::lazy_static;
+use crate::config::CONFIG;
+use qifi_rs::QIFI;
+use websocket::header::q;
 
-    let coll = client.db("QAREALTIME").collection("account");
 
-    let doc = doc! {
-        "account_cookie": account_cookie
-    };
+lazy_static! {
+    pub static ref MONGO: Client = create_mongo_client();
+}
 
-    // Insert document into 'test.movies' collection
-    // coll.insert_one(doc.clone(), None)
-    //     .ok().expect("Failed to insert document.");
+pub fn struct_to_doc<T>(value: T) -> Document
+    where
+        T: Serialize + std::fmt::Debug,
+{
+    to_bson(&value)
+        .unwrap()
+        .as_document()
+        .unwrap()
+        .to_owned()
+}
 
-    // Find the document and receive a cursor
-    let mut cursor = coll.find(Some(doc.clone()), None)
-        .ok().expect("Failed to execute find.");
+fn create_mongo_client() -> Client {
+    Client::with_uri_str(&CONFIG.mongo.uri)
+        .expect("Failed to initialize client. Please check the uri first")
+}
 
-    let item = cursor.next();
-
-    // cursor.next() returns an Option<Result<Document>>
-    match item {
-        Some(Ok(doc)) => match doc.get("accounts") {
-            Some(&Bson::Document(ref title)) => println!("{}", title),
-            _ => panic!("Expected title to be a string!"),
-        },
-        Some(Err(_)) => panic!("Failed to get next from server!"),
-        None => panic!("Server returned no results!"),
-    }
+pub fn get_collection(coll_name: &str) -> Collection {
+    MONGO.database(&CONFIG.mongo.db).collection(coll_name)
 }
 
 
-struct Qifiaccount{
-    account_cookie: String
-    
-}
-
-pub fn update_account(mongo_ip:String, account_cookie:String,) {
-    let client = Client::connect(&mongo_ip, 27017)
-        .expect("Failed to initialize standalone client.");
-
-    let coll = client.db("QAREALTIME").collection("account");
-
-    let doc = doc! {
-        "account_cookie": account_cookie
-    };
-
-    // Insert document into 'test.movies' collection
-    // coll.insert_one(doc.clone(), None)
-    //     .ok().expect("Failed to insert document.");
-
-    // Find the document and receive a cursor
-    let mut cursor = coll.find(Some(doc.clone()), None)
-        .ok().expect("Failed to execute find.");
-
-    let item = cursor.next();
-
-    // cursor.next() returns an Option<Result<Document>>
-    match item {
-        Some(Ok(doc)) => match doc.get("accounts") {
-            Some(&Bson::Document(ref title)) => println!("{}", title),
-            _ => panic!("Expected title to be a string!"),
-        },
-        Some(Err(_)) => panic!("Failed to get next from server!"),
-        None => panic!("Server returned no results!"),
-    }
+pub fn update_qifi(qifi: QIFI) {
+    let account_cookie = qifi.account_cookie.clone();
+    let slice = struct_to_doc(qifi);
+    let options = UpdateOptions::builder().upsert(true).build();
+    get_collection("account").update_one(doc! {
+            "account_cookie": account_cookie}, doc! { "$set": slice}, options).unwrap();
 }
