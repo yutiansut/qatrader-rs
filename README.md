@@ -7,7 +7,7 @@ rust version for qatrader, for a high performance with limited resources
 
 ```toml
 websocket = "0.26.2"
-       
+
 uuid = { version = "0.8", features = ["serde", "v4"] }
 # 序列化
 regex = "1.3.6"
@@ -28,6 +28,7 @@ lazy_static = "1.4.0"
 chrono = { version = "0.4", features = ["serde"] } # datetime
 
 qifi-rs = {git="https://github.com/QUANTAXIS/qifi-rs.git"}
+crossbeam-channel = "0.5.0"
 
 ```
 
@@ -43,8 +44,29 @@ cargo +nightly build
 
 运行：
 
-```
-cargo run --release conf\boot.toml
+1.
+    ```
+    qatrader-rs.exe --account=150083 --password=980817 --broker=simnow --wsuri=ws://192.168.2.124:7988 --database_ip=mongodb://localhost:27017 --eventmq_ip=amqp://admin:admin@192.168.2.125:5672/ --log_level=debug
+    ```
 
-```
-
+2.
+    ```
+    qatrader-rs.exe -c conf\boot.toml
+    ```
+   boot.toml
+    ```toml
+    [common]
+    account_name= "150083"
+    password= "980817"
+    broker= "simnow"
+    wsuri= "ws://192.168.2.124:7988"
+    eventmq_ip="amqp://admin:admin@192.168.2.125:5672/"
+    database_ip="mongodb://localhost:27017"
+    ping_gap=5
+    taskid=""
+    portfolio="default"
+    bank_password=""
+    capital_password=""
+    appid=""
+    log_level="debug"
+    ``` 
