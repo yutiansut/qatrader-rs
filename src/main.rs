@@ -12,11 +12,12 @@ use qatrade_rs::qawebsocket::QAWebSocket;
 use qatrade_rs::qaeventmq::QAEventMQ;
 use qatrade_rs::config::CONFIG;
 use qatrade_rs::qatrader::QATrader;
+use qatrade_rs::log4::init_log4;
 
 
 fn main() {
-    log4rs::init_file("conf/log4rs.yaml", Default::default()).unwrap();
-    let user_name: String = CONFIG.common.user_name.clone();
+    init_log4("log/qatrader.log",&CONFIG.common.log_level);
+    let account_name: String = CONFIG.common.account_name.clone();
     let password: String = CONFIG.common.password.clone();
     let broker: String = CONFIG.common.broker.clone();
     let wsuri: String = CONFIG.common.wsuri.clone();
@@ -49,9 +50,9 @@ fn main() {
 
     let mq_loop = thread::spawn(move || {
         let client = QAEventMQ {
-            amqp: CONFIG.mq.uri.clone(),
-            exchange: CONFIG.mq.exchange.clone(),
-            routing_key: CONFIG.mq.routing_key.clone(),
+            amqp: CONFIG.common.eventmq_ip.clone(),
+            exchange: "QAORDER_ROUTER".to_string(),
+            routing_key: CONFIG.common.account_name.clone(),
         };
         client.consume_direct(ws_send_1)
     });
@@ -67,8 +68,8 @@ fn main() {
 
     // login
     QAWebSocket::on_open(ws_send_3);
-    let mut qatrade = QATrader::new(ws_send_4, user_name, password, wsuri, broker, "default".to_string(),
-                                    CONFIG.mq.uri.clone(), 5, "".to_string(), "".to_string(), "".to_string(),
+    let mut qatrade = QATrader::new(ws_send_4, account_name.clone(), password, wsuri, broker, "default".to_string(),
+                                    CONFIG.common.eventmq_ip.clone(), 5, "".to_string(), "".to_string(), "".to_string(),
     );
     loop {
         if let Ok(data) = db_rx.recv() {

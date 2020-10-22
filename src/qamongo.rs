@@ -24,12 +24,12 @@ pub fn struct_to_doc<T>(value: T) -> Document
 }
 
 fn create_mongo_client() -> Client {
-    Client::with_uri_str(&CONFIG.mongo.uri)
+    Client::with_uri_str(&CONFIG.common.database_ip)
         .expect("Failed to initialize client. Please check the uri first")
 }
 
 pub fn get_collection(coll_name: &str) -> Collection {
-    MONGO.database(&CONFIG.mongo.db).collection(coll_name)
+    MONGO.database("QAREALTIME").collection(coll_name)
 }
 
 

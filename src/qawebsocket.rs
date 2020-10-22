@@ -1,4 +1,4 @@
-use websocket::{OwnedMessage, Message};
+use websocket::{OwnedMessage, Message,WebSocketError};
 use websocket::receiver::Reader;
 use websocket::sender::Writer;
 use std::net::TcpStream;
@@ -13,7 +13,7 @@ pub struct QAWebSocket;
 
 impl QAWebSocket {
     pub fn on_open(ws_send: Sender<OwnedMessage>) {
-        let user_name = CONFIG.common.user_name.clone();
+        let user_name = CONFIG.common.account_name.clone();
         let password = CONFIG.common.password.clone();
         let broker = CONFIG.common.broker.clone();
         let login = XReqLogin {
@@ -88,6 +88,13 @@ impl QAWebSocket {
                 }
                 Err(e) => {
                     error!(" Receive WebSocket Error: {:?}", e);
+                    match e{
+                        WebSocketError::NoDataAvailable=>{}
+                        WebSocketError::IoError(e)=>{
+                            // 重连机制
+                        }
+                        _ => {}
+                    }
                     continue;
                 }
             };

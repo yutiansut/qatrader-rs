@@ -1,17 +1,14 @@
-# 写入数据库
-[mongo]
-uri= "mongodb://localhost:27017"
-db= "QAREALTIME"
-
-# 接收order
-[mq]
-uri= "amqp://admin:admin@192.168.2.125:5672/"
-exchange= "QAORDER_ROUTER"
-routing_key= "150083"
-
 [common]
-wsuri= "ws://192.168.2.124:7988"
-#wsuri= "ws://127.0.0.1:5000/ws/signal"
-user_name= "150083"
+account_name= "150083"
 password= "980817"
 broker= "simnow"
+wsuri= "ws://192.168.2.124:7988"
+eventmq_ip="amqp://admin:admin@192.168.2.125:5672/"
+database_ip="mongodb://localhost:27017"
+ping_gap=5
+taskid=""
+portfolio="default"
+bank_password=""
+capital_password=""
+appid=""
+log_level="info"
