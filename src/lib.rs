@@ -6,3 +6,4 @@ pub mod msg;
 pub mod config;
 pub mod xmsg;
 pub mod qatrader;
+pub mod scheduler;

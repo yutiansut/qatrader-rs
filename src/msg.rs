@@ -105,12 +105,15 @@ pub fn parse_message(msg: String) -> Option<String> {
     };
     let data = match topic {
         "sendorder" => {
-            let order_id = uuid::Uuid::new_v4();
             debug!("this is sendorder {:?}", resx);
+            let order_id = match resx.get("order_id") {
+                Some(order_id) => order_id.as_str().unwrap().parse().unwrap(),
+                None => uuid::Uuid::new_v4().to_string()
+            };
             let order = ReqOrder {
                 aid: "insert_order".to_string(),
                 user_id: resx["account_cookie"].as_str().unwrap().parse().unwrap(),
-                order_id: order_id.to_string(),
+                order_id,
                 exchange_id: resx["exchange_id"].as_str().unwrap().parse().unwrap(),
                 instrument_id: resx["code"].as_str().unwrap().parse().unwrap(),
                 direction: resx["order_direction"].as_str().unwrap().parse().unwrap(),

@@ -1,7 +1,7 @@
 use serde_json::Value;
 use amiquip::{Connection, ConsumerMessage, ConsumerOptions, ExchangeDeclareOptions, ExchangeType, FieldTable, QueueDeclareOptions, Result, Publish, Channel};
 use log::{info, warn, error};
-use std::sync::mpsc::{Sender, Receiver};
+use crossbeam_channel::{Sender, Receiver};
 use websocket::OwnedMessage;
 
 

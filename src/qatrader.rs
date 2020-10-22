@@ -3,7 +3,7 @@ use serde_json::Value;
 use std::collections::{BTreeMap, HashMap};
 use qifi_rs::{QIFI, Account, Order, Position, Trade, Transfer, BankDetail};
 use websocket::OwnedMessage;
-use std::sync::mpsc::Sender;
+use crossbeam_channel::{Sender};
 
 use crate::qaeventmq::MQPublish;
 use crate::xmsg::XReqQueryBank;

@@ -8,7 +8,7 @@ use log4rs::encode::pattern::PatternEncoder;
 use log4rs::config::{Appender, Config, Logger, Root};
 
 pub fn init_log4(path: &str, level: &str) {
-    let lev = match level {
+    let lev = match level.to_uppercase().as_str() {
         "INFO" => LevelFilter::Info,
         "DEBUG" => LevelFilter::Debug,
         "ERROR" => LevelFilter::Error,

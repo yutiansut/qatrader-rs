@@ -1,18 +1,32 @@
-use websocket::{OwnedMessage, Message,WebSocketError};
+use websocket::{OwnedMessage, Message, WebSocketError, ClientBuilder};
 use websocket::receiver::Reader;
 use websocket::sender::Writer;
 use std::net::TcpStream;
-use std::sync::mpsc::{Sender, Receiver};
 use serde_json::Value;
 use log::{warn, error, debug, info};
+use crossbeam_channel::{Sender, Receiver};
 use crate::msg::{parse_message, RtnData};
 use crate::xmsg::{XPeek, XReqLogin};
 use crate::config::CONFIG;
+use crate::scheduler::Event;
 
-pub struct QAWebSocket;
+pub struct QAWebSocket {
+    pub sender: Writer<TcpStream>,
+    pub receiver: Reader<TcpStream>,
+}
 
 impl QAWebSocket {
-    pub fn on_open(ws_send: Sender<OwnedMessage>) {
+    pub fn connect(wsuri: &str) -> Result<(Writer<TcpStream>, Reader<TcpStream>), WebSocketError> {
+        let client = ClientBuilder::new(wsuri)
+            .unwrap()
+            .add_protocol("rust-websocket")
+            .connect_insecure()?;
+
+        let (receiver, sender) = client.split().unwrap();
+        Ok((sender, receiver))
+    }
+
+    pub fn login(mut ws_send: Sender<OwnedMessage>) {
         let user_name = CONFIG.common.account_name.clone();
         let password = CONFIG.common.password.clone();
         let broker = CONFIG.common.broker.clone();
@@ -29,9 +43,8 @@ impl QAWebSocket {
         }
     }
 
-
     /// 从本地chanel接收消息-->往websocket 发送消息
-    pub fn send_loop(mut sender: Writer<TcpStream>, rx: Receiver<OwnedMessage>) {
+    pub fn send_loop(mut sender: Writer<TcpStream>, rx: Receiver<OwnedMessage>, mut s_c: Sender<Event>) {
         loop {
             // Send loop
             let message = match rx.recv() {
@@ -54,6 +67,15 @@ impl QAWebSocket {
                             let x = OwnedMessage::Text(data);
                             if let Err(e) = sender.send_message(&x) {
                                 error!("Send Error: {:?}", e);
+                                match e {
+                                    WebSocketError::IoError(e) => {
+                                        warn!("WebSocket Disconnection {}", e);
+                                        s_c.send(Event::RESTART);
+                                        return;
+                                    }
+                                    WebSocketError::NoDataAvailable => {}
+                                    _ => {}
+                                }
                             }
                         }
                         None => {
@@ -67,7 +89,7 @@ impl QAWebSocket {
     }
 
     /// 接收websokcet 消息
-    pub fn receive_loop(mut receiver: Reader<TcpStream>, ws_send: Sender<OwnedMessage>, db_send: Sender<String>) {
+    pub fn receive_loop(mut receiver: Reader<TcpStream>, mut ws_send: Sender<OwnedMessage>, mut db_send: Sender<String>, mut s_c: Sender<Event>) {
         for message in receiver.incoming_messages() {
             {
                 // Peek
@@ -88,10 +110,13 @@ impl QAWebSocket {
                 }
                 Err(e) => {
                     error!(" Receive WebSocket Error: {:?}", e);
-                    match e{
-                        WebSocketError::NoDataAvailable=>{}
-                        WebSocketError::IoError(e)=>{
+                    match e {
+                        WebSocketError::NoDataAvailable => {}
+                        WebSocketError::IoError(e) => {
                             // 重连机制
+                            warn!("WebSocket Disconnection {}", e);
+                            s_c.send(Event::RESTART);
+                            return;
                         }
                         _ => {}
                     }
