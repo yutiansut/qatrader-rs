@@ -74,3 +74,11 @@ cargo +nightly build
     appid=""
     log_level="debug"
     ``` 
+3. 
+
+关于 BROKER,  
+
+- QUANTAXIS  broker 是一个单独的本地 sim 账户, 他和正常的 simnow 功能完全一致, 在 simnow 失效的时候 你可以用这个账户来模拟 simnow
+
+
+
