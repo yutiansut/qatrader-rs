@@ -1,6 +1,6 @@
 use websocket::{OwnedMessage, ClientBuilder, WebSocketError};
 use std::thread;
-use crossbeam_channel::{bounded, Sender, Receiver};
+use crossbeam_channel::{unbounded, Sender, Receiver};
 use log::{error, info, warn};
 
 use crate::qaeventmq::QAEventMQ;
@@ -21,9 +21,9 @@ pub struct Scheduler {
 impl Scheduler {
     pub fn new() -> Self {
         Self {
-            s_c: bounded(0),
-            ws_channel: bounded(0),
-            db_channel: bounded(0),
+            s_c: unbounded(),
+            ws_channel: unbounded(),
+            db_channel: unbounded(),
         }
     }
 
@@ -88,6 +88,7 @@ impl Scheduler {
                         Event::RESTART => {
                             warn!("WebSocket Try Reconnecting");
                             if let Err(e) = self.start_ws_loop() {
+                                error!("{:?}",e);
                                 self.s_c.0.send(Event::RESTART);
                             }
                         }

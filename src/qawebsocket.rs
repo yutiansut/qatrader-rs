@@ -63,29 +63,31 @@ impl QAWebSocket {
                 OwnedMessage::Text(str) => {
                     match parse_message(str) {
                         Some(data) => {
-                            // info!("Send {:?}",data);
                             let x = OwnedMessage::Text(data);
                             if let Err(e) = sender.send_message(&x) {
-                                error!("Send Error: {:?}", e);
                                 match e {
                                     WebSocketError::IoError(e) => {
-                                        warn!("WebSocket Disconnection {}", e);
-                                        s_c.send(Event::RESTART);
-                                        return;
+                                        warn!("Send WebSocket Disconnection {}", e);
+                                        break;
                                     }
-                                    WebSocketError::NoDataAvailable => {}
-                                    _ => {}
+                                    WebSocketError::NoDataAvailable => {
+                                        warn!("Send WebSocket NoDataAvailable ");
+                                    }
+                                    _ => {
+                                        error!("Send Error: {:?}", e);
+                                    }
                                 }
                             }
                         }
                         None => {
-                            warn!("Send Cancel,消息格式错误/未知消息");
+                            error!("Send Cancel,消息格式错误/未知消息");
                         }
                     }
                 }
                 _ => ()
             };
         }
+        info!("send_loop exit");
     }
 
     /// 接收websokcet 消息
@@ -93,14 +95,17 @@ impl QAWebSocket {
         for message in receiver.incoming_messages() {
             {
                 // Peek
-                let peek = XPeek { topic: "peek".to_string(), aid: "peek_message".to_string() };
-                let b = serde_json::to_string(&peek).unwrap();
-                ws_send.send(OwnedMessage::Text(b));
+                let peek = r#"{"topic":"peek","aid":"peek_message"}"#.to_string();
+                ws_send.send(OwnedMessage::Text(peek));
             }
 
             match message {
                 Ok(om) => {
                     match om {
+                        OwnedMessage::Close(_) => {
+                            let _ = ws_send.send(OwnedMessage::Close(None));
+                            break;
+                        }
                         OwnedMessage::Text(msg) => {
                             debug!("Receive WebSocket Data: {:?}", msg);
                             db_send.send(msg);
@@ -109,21 +114,24 @@ impl QAWebSocket {
                     }
                 }
                 Err(e) => {
-                    error!(" Receive WebSocket Error: {:?}", e);
                     match e {
-                        WebSocketError::NoDataAvailable => {}
+                        WebSocketError::NoDataAvailable => {
+                            warn!("Receive WebSocket NoDataAvailable ");
+                        }
                         WebSocketError::IoError(e) => {
                             // 重连机制
-                            warn!("WebSocket Disconnection {}", e);
+                            warn!("Receive WebSocket Disconnection {}", e);
                             s_c.send(Event::RESTART);
-                            return;
+                            break;
                         }
-                        _ => {}
+                        _ => {
+                            error!(" Receive WebSocket Error: {:?}", e);
+                        }
                     }
-                    continue;
                 }
             };
         }
+        info!("receive_loop exit");
     }
 }
 

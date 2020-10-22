@@ -99,28 +99,25 @@ pub fn parse_message(msg: String) -> Option<String> {
             return None;
         }
     };
-    let topic = match resx["topic"].as_str() {
-        Some(data) => data,
-        None => return None
-    };
+    let topic = resx["topic"].as_str()?;
     let data = match topic {
         "sendorder" => {
             debug!("this is sendorder {:?}", resx);
-            let order_id = match resx.get("order_id") {
-                Some(order_id) => order_id.as_str().unwrap().parse().unwrap(),
+            let order_id = match resx["order_id"].as_str() {
+                Some(order_id) => order_id.to_string(),
                 None => uuid::Uuid::new_v4().to_string()
             };
             let order = ReqOrder {
                 aid: "insert_order".to_string(),
-                user_id: resx["account_cookie"].as_str().unwrap().parse().unwrap(),
+                user_id: resx["account_cookie"].as_str()?.to_string(),
                 order_id,
-                exchange_id: resx["exchange_id"].as_str().unwrap().parse().unwrap(),
-                instrument_id: resx["code"].as_str().unwrap().parse().unwrap(),
-                direction: resx["order_direction"].as_str().unwrap().parse().unwrap(),
-                offset: resx["order_offset"].as_str().unwrap().parse().unwrap(),
-                volume: resx["volume"].as_f64().unwrap() as i64,
+                exchange_id: resx["exchange_id"].as_str()?.to_string(),
+                instrument_id: resx["code"].as_str()?.to_string(),
+                direction: resx["order_direction"].as_str()?.to_string(),
+                offset: resx["order_offset"].as_str()?.to_string(),
+                volume: resx["volume"].as_f64()? as i64,
                 price_type: "LIMIT".to_string(),
-                limit_price: resx["price"].as_f64().unwrap(),
+                limit_price: resx["price"].as_f64()?,
                 volume_condition: "ANY".to_string(),
                 time_condition: "GFD".to_string(),
             };
@@ -131,8 +128,8 @@ pub fn parse_message(msg: String) -> Option<String> {
         "cancel_order" => {
             let cancelorder = ReqCancel {
                 aid: "cancel_order".to_string(),
-                user_id: resx["account_cookie"].as_str().unwrap().parse().unwrap(),
-                order_id: resx["order_id"].as_str().unwrap().parse().unwrap(),
+                user_id: resx["account_cookie"].as_str()?.to_string(),
+                order_id: resx["order_id"].as_str()?.to_string(),
             };
             let b = serde_json::to_string(&cancelorder).unwrap();
             debug!("Pretend to send cancel {:?}", b);
@@ -142,12 +139,12 @@ pub fn parse_message(msg: String) -> Option<String> {
         "transfer" => {
             let transfermsg = ReqTransfer {
                 aid: "req_transfer".to_string(),
-                bank_id: resx["bank_id"].as_str().unwrap().parse().unwrap(),
-                future_account: resx["account_cookie"].as_str().unwrap().parse().unwrap(),
-                future_password: resx["future_password"].as_str().unwrap().parse().unwrap(),
-                bank_password: resx["bank_password"].as_str().unwrap().parse().unwrap(),
+                bank_id: resx["bank_id"].as_str()?.to_string(),
+                future_account: resx["account_cookie"].as_str()?.to_string(),
+                future_password: resx["future_password"].as_str()?.to_string(),
+                bank_password: resx["bank_password"].as_str()?.to_string(),
                 currency: "CNY".to_string(),
-                amount: resx["account_cookie"].as_f64().unwrap(),
+                amount: resx["account_cookie"].as_f64()?,
             };
             let b = serde_json::to_string(&transfermsg).unwrap();
             debug!("Pretend to send transfer {:?}", b);
@@ -156,7 +153,7 @@ pub fn parse_message(msg: String) -> Option<String> {
         "query_settlement" => {
             let qsettlementmsg = ReqQuerySettlement {
                 aid: "qry_settlement_info".to_string(),
-                trading_day: resx["trading_day"].as_i64().unwrap(),
+                trading_day: resx["trading_day"].as_i64()?,
             };
             let b = serde_json::to_string(&qsettlementmsg).unwrap();
             debug!("Pretend to send QuerySettlement {:?}", b);
@@ -165,10 +162,10 @@ pub fn parse_message(msg: String) -> Option<String> {
         "query_bank" => {
             let qbankmsg = ReqQueryBank {
                 aid: "qry_bankcapital".to_string(),
-                bank_id: resx["bank_id"].as_str().unwrap().parse().unwrap(),
-                future_account: resx["account_cookie"].as_str().unwrap().parse().unwrap(),
-                future_password: resx["future_password"].as_str().unwrap().parse().unwrap(),
-                bank_password: resx["bank_password"].as_str().unwrap().parse().unwrap(),
+                bank_id: resx["bank_id"].as_str()?.to_string(),
+                future_account: resx["account_cookie"].as_str()?.to_string(),
+                future_password: resx["future_password"].as_str()?.to_string(),
+                bank_password: resx["bank_password"].as_str()?.to_string(),
                 currency: "CNY".to_string(),
             };
             let b = serde_json::to_string(&qbankmsg).unwrap();
@@ -178,8 +175,8 @@ pub fn parse_message(msg: String) -> Option<String> {
         "change_password" => {
             let changepwdmsg = ReqChangePassword {
                 aid: "change_password".to_string(),
-                old_password: resx["old_password"].as_str().unwrap().parse().unwrap(),
-                new_password: resx["new_password"].as_str().unwrap().parse().unwrap(),
+                old_password: resx["old_password"].as_str()?.to_string(),
+                new_password: resx["new_password"].as_str()?.to_string(),
             };
             let b = serde_json::to_string(&changepwdmsg).unwrap();
             debug!("Pretend to send ChangePassword {:?}", b);
@@ -194,9 +191,9 @@ pub fn parse_message(msg: String) -> Option<String> {
         "login" => {
             let login = ReqLogin {
                 aid: "req_login".to_string(),
-                bid: resx["bid"].as_str().unwrap().parse().unwrap(),
-                user_name: resx["user_name"].as_str().unwrap().parse().unwrap(),
-                password: resx["password"].as_str().unwrap().parse().unwrap(),
+                bid: resx["bid"].as_str()?.to_string(),
+                user_name: resx["user_name"].as_str()?.to_string(),
+                password: resx["password"].as_str()?.to_string(),
             };
             let b = serde_json::to_string(&login).unwrap();
             debug!("Pretend to send Login {:?}", b);
