@@ -56,7 +56,7 @@ cargo +nightly build
    boot.toml
     ```toml
     [common]
-    account_name= "150083"
+    account= "150083"
     password= "980817"
     broker= "simnow"
     wsuri= "ws://192.168.2.124:7988"

@@ -33,7 +33,7 @@ impl Scheduler {
             let client = QAEventMQ {
                 amqp: CONFIG.common.eventmq_ip.clone(),
                 exchange: "QAORDER_ROUTER".to_string(),
-                routing_key: CONFIG.common.account_name.clone(),
+                routing_key: CONFIG.common.account.clone(),
             };
             client.consume_direct(ws_send)
         });
@@ -65,7 +65,7 @@ impl Scheduler {
         let ws_send = self.ws_channel.0.clone();
         let db_rx = self.db_channel.1.clone();
         let trade_loop = thread::spawn(move || {
-            let mut qatrade = QATrader::new(ws_send, CONFIG.common.account_name.clone(), CONFIG.common.password.clone(),
+            let mut qatrade = QATrader::new(ws_send, CONFIG.common.account.clone(), CONFIG.common.password.clone(),
                                             CONFIG.common.wsuri.clone(), CONFIG.common.broker.clone(), CONFIG.common.portfolio.clone(),
                                             CONFIG.common.eventmq_ip.clone(), CONFIG.common.ping_gap.clone(),
                                             CONFIG.common.bank_password.clone(), CONFIG.common.capital_password.clone(),

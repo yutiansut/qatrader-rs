@@ -27,14 +27,14 @@ impl QAWebSocket {
     }
 
     pub fn login(mut ws_send: Sender<OwnedMessage>) {
-        let user_name = CONFIG.common.account_name.clone();
+        let account = CONFIG.common.account.clone();
         let password = CONFIG.common.password.clone();
         let broker = CONFIG.common.broker.clone();
         let login = XReqLogin {
             topic: "login".to_string(),
             aid: "req_login".to_string(),
             bid: broker.clone(),
-            user_name: user_name.clone(),
+            user_name: account.clone(),
             password: password.clone(),
         };
         let msg = serde_json::to_string(&login).unwrap();

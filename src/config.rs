@@ -120,7 +120,7 @@ impl Default for RedisConfig {
 #[serde(default)]
 pub struct Common {
     pub log_level: String,
-    pub account_name: String,
+    pub account: String,
     pub password: String,
     pub broker: String,
     pub wsuri: String,
@@ -223,7 +223,7 @@ pub fn new_config() -> Config {
             }
         }
     } else {
-        let account_name = matches.value_of("account").unwrap_or("").to_string();
+        let account = matches.value_of("account").unwrap_or("").to_string();
         let password = matches.value_of("password").unwrap_or("").to_string();
         let wsuri = matches.value_of("wsuri").unwrap_or("ws://localhost:7988").to_string();
         let broker = matches.value_of("broker").unwrap_or("simnow").to_string();
@@ -238,7 +238,7 @@ pub fn new_config() -> Config {
         let log_level = matches.value_of("log_level").unwrap_or("info").to_string();
         Config {
             common: Common {
-                account_name,
+                account,
                 password,
                 broker,
                 wsuri,
