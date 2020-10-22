@@ -118,7 +118,7 @@ pub fn parse_message(msg: String) -> Option<String> {
                 instrument_id: resx["code"].as_str().unwrap().parse().unwrap(),
                 direction: resx["order_direction"].as_str().unwrap().parse().unwrap(),
                 offset: resx["order_offset"].as_str().unwrap().parse().unwrap(),
-                volume: resx["volume"].as_i64().unwrap(),
+                volume: resx["volume"].as_f64().unwrap() as i64,
                 price_type: "LIMIT".to_string(),
                 limit_price: resx["price"].as_f64().unwrap(),
                 volume_condition: "ANY".to_string(),
