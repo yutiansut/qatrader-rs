@@ -5,6 +5,7 @@ rust version for qatrader, for a high performance with limited resources
 
 支持单机上万账户并发的 qatrader rust版本
 
+支持realtime 模拟盘版本 / ctp实盘版本 / 以及支持qifi协议的自建网关版本
 
 
 
