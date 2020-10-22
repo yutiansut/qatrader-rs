@@ -3,6 +3,9 @@
 rust version for qatrader, for a high performance with limited resources
 
 
+支持单机上万账户并发的 qatrader rust版本
+
+
 
 
 ```toml
