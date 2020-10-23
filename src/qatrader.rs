@@ -3,7 +3,7 @@ use serde_json::Value;
 use std::collections::{BTreeMap, HashMap};
 use qifi_rs::{QIFI, Account, Order, Position, Trade, Transfer, BankDetail};
 use websocket::OwnedMessage;
-use crossbeam_channel::{Sender};
+use crossbeam_channel::Sender;
 
 use crate::qaeventmq::MQPublish;
 use crate::xmsg::XReqQueryBank;
@@ -25,53 +25,20 @@ impl QATrader {
             pub_transaction: MQPublish::new(&eventmq_ip),
             ws_sender,
             qifi: QIFI {
-                databaseip: "".to_string(),
                 account_cookie,
                 password,
                 portfolio,
                 broker_name,
+                eventmq_ip,
                 capital_password,
                 bank_password,
-                bankid: "".to_string(),
-                investor_name: "".to_string(),
-                money: 0.0,
                 pub_host: "127.0.0.1".to_string(),
-                settlement: Default::default(),
                 taskid,
                 trade_host: "127.0.0.1".to_string(),
-                updatetime: "".to_string(),
                 wsuri,
-                bankname: "".to_string(),
-                trading_day: "".to_string(),
                 status: 200,
-                accounts: Account {
-                    user_id: "".to_string(),
-                    currency: "".to_string(),
-                    pre_balance: 0.0,
-                    deposit: 0.0,
-                    withdraw: 0.0,
-                    WithdrawQuota: 0.0,
-                    close_profit: 0.0,
-                    commission: 0.0,
-                    premium: 0.0,
-                    static_balance: 0.0,
-                    position_profit: 0.0,
-                    float_profit: 0.0,
-                    balance: 0.0,
-                    margin: 0.0,
-                    frozen_margin: 0.0,
-                    frozen_commission: 0.0,
-                    frozen_premium: 0.0,
-                    available: 0.0,
-                    risk_ratio: 0.0,
-                },
-                banks: Default::default(),
-                event: Default::default(),
-                orders: Default::default(),
-                positions: Default::default(),
-                trades: Default::default(),
-                transfers: Default::default(),
                 ping_gap,
+                ..QIFI::default()
             },
         }
     }

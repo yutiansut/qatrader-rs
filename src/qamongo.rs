@@ -5,7 +5,6 @@ use bson::{to_bson, Document, doc};
 use lazy_static::lazy_static;
 use crate::config::CONFIG;
 use qifi_rs::QIFI;
-use websocket::header::q;
 
 
 lazy_static! {
