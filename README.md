@@ -7,6 +7,8 @@ rust version for qatrader, for a high performance with limited resources
 
 支持realtime 模拟盘版本 / ctp实盘版本 / 以及支持qifi协议的自建网关版本
 
+本项目需要配合QATRADEG使用(https://github.com/yutiansut/QAtradeG)
+
 
 
 ```toml
