@@ -9,6 +9,7 @@ use crate::msg::{parse_message, RtnData};
 use crate::xmsg::{XPeek, XReqLogin};
 use crate::config::CONFIG;
 use crate::scheduler::Event;
+use std::str::from_utf8;
 
 pub struct QAWebSocket {
     pub sender: Writer<TcpStream>,
@@ -60,6 +61,9 @@ impl QAWebSocket {
                     // If it's a close message, just send it and then return.
                     return;
                 }
+                OwnedMessage::Ping(_) => {
+                    let _ = sender.send_message(&message);
+                }
                 OwnedMessage::Text(str) => {
                     match parse_message(str) {
                         Some(data) => {
@@ -109,6 +113,11 @@ impl QAWebSocket {
                         OwnedMessage::Text(msg) => {
                             debug!("Receive WebSocket Data: {:?}", msg);
                             db_send.send(msg);
+                        }
+                        OwnedMessage::Pong(msg) => {
+                            let data = from_utf8(&msg).unwrap().to_string();
+                            debug!("Pong WebSocket Data: {:?}", data);
+                            db_send.send(data);
                         }
                         _ => ()
                     }

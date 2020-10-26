@@ -36,7 +36,7 @@ pub fn parse_config_from_cli_args(matches: &clap::ArgMatches) -> Config {
         },
         None => {
             warn!("No config file specified, use default");
-            Config::default()
+            std::process::exit(1);
         }
     };
     conf
@@ -212,7 +212,11 @@ pub fn new_config() -> Config {
             .help("日志等级[ debug / info / warn / error]")
             .takes_value(true))
         .get_matches();
-
+    let _args: Vec<String> = env::args().collect();
+    if _args.len() <= 1{
+        println!("Help:\ncargo build --release\ntarget\\release\\qatrader --help");
+        std::process::exit(0);
+    }
     // Gets a value for config if supplied by user, or defaults to "default.conf"
     if let Some(config_path) = matches.value_of("config") {
         match Config::from_file(config_path) {

@@ -30,3 +30,5 @@ chrono = { version = "0.4", features = ["serde"] } # datetime
 
 qifi-rs = {git="https://github.com/QUANTAXIS/qifi-rs.git"}
 crossbeam-channel = "0.5.0"
+actix = "0.10.0"
+actix-rt = "1.0.0"

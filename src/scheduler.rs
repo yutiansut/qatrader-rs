@@ -2,11 +2,14 @@ use websocket::{OwnedMessage, ClientBuilder, WebSocketError};
 use std::thread;
 use crossbeam_channel::{unbounded, Sender, Receiver};
 use log::{error, info, warn};
+use chrono::Local;
+use actix::prelude::*;
 
 use crate::qaeventmq::QAEventMQ;
 use crate::qawebsocket::QAWebSocket;
 use crate::config::CONFIG;
 use crate::qatrader::QATrader;
+use std::time::Duration;
 
 pub enum Event {
     RESTART
@@ -81,24 +84,37 @@ impl Scheduler {
 
 
     pub fn wait(&mut self) {
-        loop {
-            match self.s_c.1.recv() {
-                Ok(event) => {
-                    match event {
-                        Event::RESTART => {
-                            warn!("WebSocket Try Reconnecting");
-                            if let Err(e) = self.start_ws_loop() {
-                                error!("{:?}",e);
-                                self.s_c.0.send(Event::RESTART);
-                            }
+        match self.s_c.1.try_recv() {
+            Ok(event) => {
+                match event {
+                    Event::RESTART => {
+                        warn!("WebSocket Try Reconnecting");
+                        if let Err(e) = self.start_ws_loop() {
+                            error!("{:?}", e);
+                            self.s_c.0.send(Event::RESTART);
                         }
-                        _ => ()
                     }
-                }
-                Err(e) => {
-                    error!("{:?}", e);
+                    _ => ()
                 }
             }
+            _ => ()
         }
+    }
+
+    pub fn ping(&mut self) {
+        let msg = OwnedMessage::Ping(format!("ping-{}", CONFIG.common.account).as_bytes().to_vec());
+        self.ws_channel.0.send(msg);
+    }
+}
+
+impl Actor for Scheduler {
+    type Context = Context<Self>;
+    fn started(&mut self, ctx: &mut Self::Context) {
+        ctx.run_interval(Duration::from_secs(1), |act, ctx| {
+            act.wait();
+        });
+        ctx.run_interval(Duration::from_secs(CONFIG.common.ping_gap as u64), |act, ctx| {
+            act.ping();
+        });
     }
 }
