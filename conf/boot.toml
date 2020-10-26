@@ -1,9 +1,8 @@
 [common]
-account= "150083"
-password= "980817"
+account= ""
+password= ""
 broker= "simnow"
 wsuri= "ws://192.168.2.124:7988"
-#wsuri= "ws://192.168.2.125:5000/ws/signal"
 eventmq_ip="amqp://admin:admin@192.168.2.125:5672/"
 database_ip="mongodb://localhost:27017"
 ping_gap=5

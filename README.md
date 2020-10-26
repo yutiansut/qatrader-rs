@@ -52,7 +52,7 @@ cargo +nightly build
 
 1.
     ```
-    qatrader-rs.exe --account=150083 --password=980817 --broker=simnow --wsuri=ws://192.168.2.124:7988 --database_ip=mongodb://localhost:27017 --eventmq_ip=amqp://admin:admin@192.168.2.125:5672/ --log_level=debug
+    qatrader-rs.exe --account=xxxxx --password=xxxxx --broker=simnow --wsuri=ws://192.168.2.124:7988 --database_ip=mongodb://localhost:27017 --eventmq_ip=amqp://admin:admin@192.168.2.125:5672/ --log_level=debug
     ```
 
 2.
@@ -62,8 +62,8 @@ cargo +nightly build
    boot.toml
     ```toml
     [common]
-    account= "150083"
-    password= "980817"
+    account= ""
+    password= ""
     broker= "simnow"
     wsuri= "ws://192.168.2.124:7988"
     eventmq_ip="amqp://admin:admin@192.168.2.125:5672/"
