@@ -71,11 +71,11 @@ impl QAWebSocket {
                             if let Err(e) = sender.send_message(&x) {
                                 match e {
                                     WebSocketError::IoError(e) => {
-                                        warn!("Send WebSocket Disconnection {}", e);
+                                        error!("Send WebSocket Disconnection {}", e);
                                         break;
                                     }
                                     WebSocketError::NoDataAvailable => {
-                                        warn!("Send WebSocket NoDataAvailable ");
+                                        error!("Send WebSocket NoDataAvailable ");
                                     }
                                     _ => {
                                         error!("Send Error: {:?}", e);
@@ -111,13 +111,11 @@ impl QAWebSocket {
                             break;
                         }
                         OwnedMessage::Text(msg) => {
-                            debug!("Receive WebSocket Data: {:?}", msg);
+                            info!("Receive WebSocket Data: {:?}", msg);
                             db_send.send(msg);
                         }
                         OwnedMessage::Pong(msg) => {
-                            let data = from_utf8(&msg).unwrap().to_string();
-                            debug!("Pong WebSocket Data: {:?}", data);
-                            db_send.send(data);
+                            let _ = from_utf8(&msg).unwrap().to_string();
                         }
                         _ => ()
                     }
@@ -125,11 +123,11 @@ impl QAWebSocket {
                 Err(e) => {
                     match e {
                         WebSocketError::NoDataAvailable => {
-                            warn!("Receive WebSocket NoDataAvailable ");
+                            error!("Receive WebSocket NoDataAvailable ");
                         }
                         WebSocketError::IoError(e) => {
                             // 重连机制
-                            warn!("Receive WebSocket Disconnection {}", e);
+                            error!("Receive WebSocket Disconnection {}", e);
                             s_c.send(Event::RESTART);
                             break;
                         }

@@ -86,32 +86,47 @@ impl MQPublish {
         }
     }
     pub fn publish_topic(&mut self, exchange_name: &str, context: String, routing_key: &str) {
-        let exchange = self
+        let exchange = match self
             .channel
             .exchange_declare(
                 ExchangeType::Topic,
                 exchange_name,
                 ExchangeDeclareOptions::default(),
-            )
-            .unwrap();
-        exchange
+            ) {
+            Ok(x) => x,
+            Err(e) => {
+                error!("{:?}", e);
+                return;
+            }
+        };
+
+        if let Err(e) = exchange
             .publish(Publish::new(context.as_bytes(), routing_key))
-            .unwrap();
+        {
+            error!("MQ {:?}", e);
+        }
         //connection.close();
     }
 
     pub fn publish_routing(&mut self, exchange_name: &str, context: String, routing_key: &str) {
-        let exchange = self
+        let exchange = match self
             .channel
             .exchange_declare(
                 ExchangeType::Direct,
                 exchange_name,
                 ExchangeDeclareOptions::default(),
-            )
-            .unwrap();
-        exchange
+            ) {
+            Ok(x) => x,
+            Err(e) => {
+                error!("{:?}", e);
+                return;
+            }
+        };
+        if let Err(e) = exchange
             .publish(Publish::new(context.as_bytes(), routing_key))
-            .unwrap();
+        {
+            error!("MQ {:?}", e);
+        }
         //connection.close();
     }
 }

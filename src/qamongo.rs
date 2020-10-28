@@ -5,7 +5,7 @@ use bson::{to_bson, Document, doc};
 use lazy_static::lazy_static;
 use crate::config::CONFIG;
 use qifi_rs::QIFI;
-
+use log::error;
 
 lazy_static! {
     pub static ref MONGO: Client = create_mongo_client();
@@ -36,6 +36,8 @@ pub fn update_qifi(qifi: QIFI) {
     let account_cookie = qifi.account_cookie.clone();
     let slice = struct_to_doc(qifi);
     let options = UpdateOptions::builder().upsert(true).build();
-    get_collection("account").update_one(doc! {
-            "account_cookie": account_cookie}, doc! { "$set": slice}, options).unwrap();
+    if let Err(e) = get_collection("account").update_one(doc! {
+            "account_cookie": account_cookie}, doc! { "$set": slice}, options) {
+        error!("MONGO {:?}", e);
+    };
 }
