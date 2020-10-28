@@ -4,12 +4,14 @@ use crossbeam_channel::{unbounded, Sender, Receiver};
 use log::{error, info, warn};
 use chrono::Local;
 use actix::prelude::*;
-
+use websocket::sender::Writer;
+use std::net::TcpStream;
 use crate::qaeventmq::QAEventMQ;
 use crate::qawebsocket::QAWebSocket;
 use crate::config::CONFIG;
 use crate::qatrader::QATrader;
 use std::time::Duration;
+use std::sync::{Mutex, Arc};
 
 pub enum Event {
     RESTART
@@ -19,6 +21,8 @@ pub struct Scheduler {
     pub s_c: (Sender<Event>, Receiver<Event>),
     pub ws_channel: (Sender<OwnedMessage>, Receiver<OwnedMessage>),
     pub db_channel: (Sender<String>, Receiver<String>),
+    pub discard_flag: Arc<Mutex<bool>>,
+    pub ws_send: Option<Writer<TcpStream>>,
 }
 
 impl Scheduler {
@@ -27,6 +31,8 @@ impl Scheduler {
             s_c: unbounded(),
             ws_channel: unbounded(),
             db_channel: unbounded(),
+            discard_flag: Arc::new(Mutex::new(false)),
+            ws_send: None,
         }
     }
 
@@ -44,13 +50,13 @@ impl Scheduler {
 
     pub fn start_ws_loop(&mut self) -> Result<(), WebSocketError> {
         let (sender, receiver) = QAWebSocket::connect(&CONFIG.common.wsuri)?;
-
-        let ws_rece = self.ws_channel.1.clone();
+        let ws_rece = self.ws_channel.1.clone(); // ws_r 1次
         let ws_send = self.ws_channel.0.clone();
         let s_c_send1 = self.s_c.0.clone();
         let s_c_send2 = self.s_c.0.clone();
         let db_send_1 = self.db_channel.0.clone();
 
+        // self.set_discard_flag(false);
         let send_loop = thread::spawn(move || {
             QAWebSocket::send_loop(sender, ws_rece, s_c_send1)
         });
@@ -66,7 +72,7 @@ impl Scheduler {
 
     pub fn start_trader_loop(&mut self) {
         let ws_send = self.ws_channel.0.clone();
-        let db_rx = self.db_channel.1.clone();
+        let db_rx = self.db_channel.1.clone();  // db_r 1次
         let trade_loop = thread::spawn(move || {
             let mut qatrade = QATrader::new(ws_send, CONFIG.common.account.clone(), CONFIG.common.password.clone(),
                                             CONFIG.common.wsuri.clone(), CONFIG.common.broker.clone(), CONFIG.common.portfolio.clone(),
@@ -88,6 +94,7 @@ impl Scheduler {
             Ok(event) => {
                 match event {
                     Event::RESTART => {
+                        // self.set_discard_flag(true);
                         warn!("WebSocket Try Reconnecting");
                         if let Err(e) = self.start_ws_loop() {
                             error!("{:?}", e);
@@ -105,12 +112,39 @@ impl Scheduler {
         let msg = OwnedMessage::Ping(format!("ping-{}", CONFIG.common.account).as_bytes().to_vec());
         self.ws_channel.0.send(msg);
     }
+
+    // pub fn set_discard_flag(&mut self, flag: bool) {
+    //     let mut f = self.discard_flag.lock().unwrap();
+    //     *f = flag;
+    // }
+
+    // pub fn start_discard_mq_msg_loop(&mut self) {
+    //     let ws_recv = self.ws_channel.1.clone(); // ws_r 2次
+    //     let discard_f = Arc::clone(&self.discard_flag);
+    //     thread::spawn(move || {
+    //         let mut flag = false;
+    //         loop {
+    //             if let Ok(f) = discard_f.try_lock() {
+    //                 flag = *f;
+    //             };
+    //
+    //             if flag {
+    //                 if let Ok(x) = ws_recv.recv() {
+    //                     warn!("discard {:?}", x);
+    //                 }
+    //             }else{
+    //                 debug!("discard wait");
+    //                 thread::sleep(Duration::from_secs(1));
+    //             }
+    //         }
+    //     });
+    // }
 }
 
 impl Actor for Scheduler {
     type Context = Context<Self>;
     fn started(&mut self, ctx: &mut Self::Context) {
-        ctx.run_interval(Duration::from_secs(1), |act, ctx| {
+        ctx.run_interval(Duration::from_secs(3), |act, ctx| {
             act.wait();
         });
         ctx.run_interval(Duration::from_secs(CONFIG.common.ping_gap as u64), |act, ctx| {

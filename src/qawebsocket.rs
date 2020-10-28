@@ -56,11 +56,6 @@ impl QAWebSocket {
                 }
             };
             match message {
-                OwnedMessage::Close(_) => {
-                    let _ = sender.send_message(&message);
-                    // If it's a close message, just send it and then return.
-                    return;
-                }
                 OwnedMessage::Ping(_) => {
                     let _ = sender.send_message(&message);
                 }
@@ -69,18 +64,8 @@ impl QAWebSocket {
                         Some(data) => {
                             let x = OwnedMessage::Text(data);
                             if let Err(e) = sender.send_message(&x) {
-                                match e {
-                                    WebSocketError::IoError(e) => {
-                                        error!("Send WebSocket Disconnection {}", e);
-                                        break;
-                                    }
-                                    WebSocketError::NoDataAvailable => {
-                                        error!("Send WebSocket NoDataAvailable ");
-                                    }
-                                    _ => {
-                                        error!("Send Error: {:?}", e);
-                                    }
-                                }
+                                error!("Send WebSocket {:?}", e);
+                                break;
                             }
                         }
                         None => {
@@ -88,7 +73,9 @@ impl QAWebSocket {
                         }
                     }
                 }
-                _ => ()
+                _ => {
+                    error!("内部错误")
+                }
             };
         }
         info!("send_loop exit");
@@ -96,6 +83,7 @@ impl QAWebSocket {
 
     /// 接收websokcet 消息
     pub fn receive_loop(mut receiver: Reader<TcpStream>, mut ws_send: Sender<OwnedMessage>, mut db_send: Sender<String>, mut s_c: Sender<Event>) {
+        let mut Error_count = 1;
         for message in receiver.incoming_messages() {
             {
                 // Peek
@@ -107,7 +95,6 @@ impl QAWebSocket {
                 Ok(om) => {
                     match om {
                         OwnedMessage::Close(_) => {
-                            let _ = ws_send.send(OwnedMessage::Close(None));
                             break;
                         }
                         OwnedMessage::Text(msg) => {
@@ -121,20 +108,12 @@ impl QAWebSocket {
                     }
                 }
                 Err(e) => {
-                    match e {
-                        WebSocketError::NoDataAvailable => {
-                            error!("Receive WebSocket NoDataAvailable ");
-                        }
-                        WebSocketError::IoError(e) => {
-                            // 重连机制
-                            error!("Receive WebSocket Disconnection {}", e);
-                            s_c.send(Event::RESTART);
-                            break;
-                        }
-                        _ => {
-                            error!(" Receive WebSocket Error: {:?}", e);
-                        }
+                    error!("Receive WebSocket Error {:?}", Error_count);
+                    if Error_count >= 10 {
+                        s_c.send(Event::RESTART);
+                        break;
                     }
+                    Error_count += 1;
                 }
             };
         }
