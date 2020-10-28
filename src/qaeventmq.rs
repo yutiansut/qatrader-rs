@@ -1,8 +1,9 @@
 use serde_json::Value;
 use amiquip::{Connection, ConsumerMessage, ConsumerOptions, ExchangeDeclareOptions, ExchangeType, FieldTable, QueueDeclareOptions, Result, Publish, Channel};
 use log::{info, warn, error};
-use crossbeam_channel::{Sender, Receiver};
 use websocket::OwnedMessage;
+use crate::scheduler::{Scheduler, OwnedMessageWrap};
+use actix::Addr;
 
 
 pub struct QAEventMQ {
@@ -24,7 +25,7 @@ impl QAEventMQ {
         }
     }
 
-    pub fn consume_direct(&self, sender: Sender<OwnedMessage>) -> Result<()> {
+    pub fn consume_direct(&self, sender: Addr<Scheduler>) -> Result<()> {
         let mut connection = Connection::insecure_open(&self.amqp)?;
         let channel = connection.open_channel(None)?;
         let exchange = channel.exchange_declare(
@@ -58,7 +59,7 @@ impl QAEventMQ {
                 ConsumerMessage::Delivery(delivery) => {
                     let msg = delivery.body.clone();
                     let foo = String::from_utf8(msg).unwrap();
-                    sender.send(OwnedMessage::Text(foo));
+                    sender.do_send(OwnedMessageWrap(OwnedMessage::Text(foo)));
                 }
                 other => {
                     warn!("Consumer ended: {:?}", other);

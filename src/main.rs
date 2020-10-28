@@ -16,12 +16,6 @@ fn main() {
     let sys = System::new("");
     init_log4("log/qatrader.log", &CONFIG.common.log_level);
     let mut scheduler = Scheduler::new();
-    scheduler.start_trader_loop();
-    if let Err(e) = scheduler.start_ws_loop() {
-        error!("websocket {:?}", e);
-        std::process::exit(1);
-    }
-    scheduler.start_mq_loop();
     scheduler.start();
     sys.run();
 }

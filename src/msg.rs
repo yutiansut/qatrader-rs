@@ -102,7 +102,6 @@ pub fn parse_message(msg: String) -> Option<String> {
     let topic = resx["topic"].as_str()?;
     let data = match topic {
         "sendorder" => {
-            info!("this is sendorder {:?}", resx);
             let order_id = match resx["order_id"].as_str() {
                 Some(order_id) => order_id.to_string(),
                 None => uuid::Uuid::new_v4().to_string()
@@ -122,7 +121,7 @@ pub fn parse_message(msg: String) -> Option<String> {
                 time_condition: "GFD".to_string(),
             };
             let b = serde_json::to_string(&order).unwrap();
-            info!("Pretend to send {:?}", b);
+            info!("[Pretend to send order] {:?}", b);
             b
         }
         "cancel_order" => {
@@ -132,7 +131,7 @@ pub fn parse_message(msg: String) -> Option<String> {
                 order_id: resx["order_id"].as_str()?.to_string(),
             };
             let b = serde_json::to_string(&cancelorder).unwrap();
-            info!("Pretend to send cancel {:?}", b);
+            info!("[Pretend to send cancel] {:?}", b);
 
             b
         }
@@ -147,7 +146,7 @@ pub fn parse_message(msg: String) -> Option<String> {
                 amount: resx["account_cookie"].as_f64()?,
             };
             let b = serde_json::to_string(&transfermsg).unwrap();
-            info!("Pretend to send transfer {:?}", b);
+            info!("[Pretend to send transfer] {:?}", b);
             b
         }
         "query_settlement" => {
@@ -156,7 +155,7 @@ pub fn parse_message(msg: String) -> Option<String> {
                 trading_day: resx["trading_day"].as_i64()?,
             };
             let b = serde_json::to_string(&qsettlementmsg).unwrap();
-            info!("Pretend to send QuerySettlement {:?}", b);
+            info!("[Pretend to send QuerySettlement] {:?}", b);
             b
         }
         "query_bank" => {
@@ -169,7 +168,7 @@ pub fn parse_message(msg: String) -> Option<String> {
                 currency: "CNY".to_string(),
             };
             let b = serde_json::to_string(&qbankmsg).unwrap();
-            info!("Pretend to send QueryBank {:?}", b);
+            info!("[Pretend to send QueryBank] {:?}", b);
             b
         }
         "change_password" => {
@@ -179,13 +178,13 @@ pub fn parse_message(msg: String) -> Option<String> {
                 new_password: resx["new_password"].as_str()?.to_string(),
             };
             let b = serde_json::to_string(&changepwdmsg).unwrap();
-            info!("Pretend to send ChangePassword {:?}", b);
+            info!("[Pretend to send ChangePassword] {:?}", b);
             b
         }
         "peek" => {
             let peek = Peek { aid: "peek_message".to_string() };
             let b = serde_json::to_string(&peek).unwrap();
-            info!("Pretend to send Peek {:?}", b);
+            info!("[Pretend to send Peek] {:?}", b);
             b
         }
         "login" => {
@@ -196,11 +195,11 @@ pub fn parse_message(msg: String) -> Option<String> {
                 password: resx["password"].as_str()?.to_string(),
             };
             let b = serde_json::to_string(&login).unwrap();
-            info!("Pretend to send Login {:?}", b);
+            info!("[Pretend to send Login] {:?}", b);
             b
         }
         _ => {
-            error!("unknown topic receive! {:?}", resx);
+            error!("[Unknown Topic!] {:?}", resx);
             return None;
         }
     };

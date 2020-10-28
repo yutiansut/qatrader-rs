@@ -3,27 +3,28 @@ use serde_json::Value;
 use std::collections::{BTreeMap, HashMap};
 use qifi_rs::{QIFI, Account, Order, Position, Trade, Transfer, BankDetail};
 use websocket::OwnedMessage;
-use crossbeam_channel::Sender;
 
 use crate::qaeventmq::MQPublish;
 use crate::xmsg::XReqQueryBank;
+use crate::scheduler::{Scheduler, OwnedMessageWrap};
 use crate::qamongo::{struct_to_doc, get_collection, update_qifi};
+use actix::Addr;
 
 pub struct QATrader {
     pub qifi: QIFI,
     pub last_update_time: DateTime<Local>,
-    pub ws_sender: Sender<OwnedMessage>,
+    pub ws_sender: Option<Addr<Scheduler>>,
     pub pub_transaction: MQPublish,
 }
 
 impl QATrader {
-    pub fn new(ws_sender: Sender<OwnedMessage>, account_cookie: String, password: String, wsuri: String, broker_name: String, portfolio: String,
+    pub fn new(account_cookie: String, password: String, wsuri: String, broker_name: String, portfolio: String,
                eventmq_ip: String, ping_gap: i32, bank_password: String, capital_password: String, taskid: String,
     ) -> Self {
         Self {
             last_update_time: Local::now(),
             pub_transaction: MQPublish::new(&eventmq_ip),
-            ws_sender,
+            ws_sender: None,
             qifi: QIFI {
                 account_cookie,
                 password,
@@ -46,8 +47,6 @@ impl QATrader {
 
     pub fn rtn_data_handler(&mut self, data: &Value) {
         let account_cookie = self.qifi.account_cookie.clone();
-        self.last_update_time = Local::now();
-        self.qifi.updatetime = self.last_update_time.format("%Y-%m-%d %H:%M:%S").to_string();
         let new_message = data[&account_cookie].clone();
         if let Some(s) = new_message.get("session") {
             let trading_day = new_message["session"]["trading_day"].as_str().unwrap();
@@ -104,7 +103,7 @@ impl QATrader {
                             currency: "CNY".to_string(),
                         };
                         let b = serde_json::to_string(&x).unwrap();
-                        self.ws_sender.send(OwnedMessage::Text(b));
+                        self.ws_sender.as_ref().unwrap().do_send(OwnedMessageWrap(OwnedMessage::Text(b)));
                     }
                     self.qifi.bankid = val.id.clone();
                     self.qifi.bankname = val.name.clone();
@@ -127,7 +126,7 @@ impl QATrader {
             }
         }
 
-        update_qifi(self.qifi.clone());
+        self.sync();
     }
 
 
@@ -136,7 +135,7 @@ impl QATrader {
         if let Some(x) = self.qifi.settlement.get_mut(reportdate) {
             *x = data["settlement_info"].as_str().unwrap().to_string()
         }
-        update_qifi(self.qifi.clone());
+        self.sync();
     }
 
     pub fn notify_handler(&mut self, data: &Value) {
@@ -149,11 +148,10 @@ impl QATrader {
                 self.qifi.status = 600;
             }
         }
-
-        update_qifi(self.qifi.clone());
+        self.sync();
     }
 
-    pub fn sync(&mut self, msg: String) {
+    pub fn parse(&mut self, msg: String) {
         if let Ok(val) = serde_json::from_str::<Value>(&msg) {
             if let Some(aid) = val["aid"].as_str() {
                 let m = &val["data"][0]["trade"];
@@ -172,5 +170,11 @@ impl QATrader {
                 }
             }
         }
+    }
+
+    pub fn sync(&mut self) {
+        self.last_update_time = Local::now();
+        self.qifi.updatetime = self.last_update_time.format("%Y-%m-%d %H:%M:%S").to_string();
+        update_qifi(self.qifi.clone());
     }
 }

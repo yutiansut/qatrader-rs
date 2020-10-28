@@ -1,6 +1,5 @@
 use websocket::{OwnedMessage, ClientBuilder, WebSocketError};
 use std::thread;
-use crossbeam_channel::{unbounded, Sender, Receiver};
 use log::{error, info, warn};
 use chrono::Local;
 use actix::prelude::*;
@@ -12,143 +11,147 @@ use crate::config::CONFIG;
 use crate::qatrader::QATrader;
 use std::time::Duration;
 use std::sync::{Mutex, Arc};
+use crate::xmsg::XReqLogin;
 
-pub enum Event {
-    RESTART
-}
 
 pub struct Scheduler {
-    pub s_c: (Sender<Event>, Receiver<Event>),
-    pub ws_channel: (Sender<OwnedMessage>, Receiver<OwnedMessage>),
-    pub db_channel: (Sender<String>, Receiver<String>),
-    pub discard_flag: Arc<Mutex<bool>>,
-    pub ws_send: Option<Writer<TcpStream>>,
+    pub trader: QATrader,
+    pub ws_sender: Option<Writer<TcpStream>>,
 }
 
 impl Scheduler {
     pub fn new() -> Self {
+        let trader = QATrader::new(CONFIG.common.account.clone(), CONFIG.common.password.clone(),
+                                   CONFIG.common.wsuri.clone(), CONFIG.common.broker.clone(), CONFIG.common.portfolio.clone(),
+                                   CONFIG.common.eventmq_ip.clone(), CONFIG.common.ping_gap.clone(),
+                                   CONFIG.common.bank_password.clone(), CONFIG.common.capital_password.clone(),
+                                   CONFIG.common.taskid.clone());
         Self {
-            s_c: unbounded(),
-            ws_channel: unbounded(),
-            db_channel: unbounded(),
-            discard_flag: Arc::new(Mutex::new(false)),
-            ws_send: None,
+            trader,
+            ws_sender: None,
         }
     }
 
-    pub fn start_mq_loop(&mut self) {
-        let ws_send = self.ws_channel.0.clone();
+    pub fn start_mq_loop(&mut self, addr: Addr<Scheduler>) {
         let mq_loop = thread::spawn(move || {
             let client = QAEventMQ {
                 amqp: CONFIG.common.eventmq_ip.clone(),
                 exchange: "QAORDER_ROUTER".to_string(),
                 routing_key: CONFIG.common.account.clone(),
             };
-            client.consume_direct(ws_send)
+            client.consume_direct(addr)
         });
     }
 
-    pub fn start_ws_loop(&mut self) -> Result<(), WebSocketError> {
+    pub fn start_ws_receive_loop(&mut self, addr: Addr<Scheduler>) -> Result<(), WebSocketError> {
         let (sender, receiver) = QAWebSocket::connect(&CONFIG.common.wsuri)?;
-        let ws_rece = self.ws_channel.1.clone(); // ws_r 1次
-        let ws_send = self.ws_channel.0.clone();
-        let s_c_send1 = self.s_c.0.clone();
-        let s_c_send2 = self.s_c.0.clone();
-        let db_send_1 = self.db_channel.0.clone();
-
-        // self.set_discard_flag(false);
-        let send_loop = thread::spawn(move || {
-            QAWebSocket::send_loop(sender, ws_rece, s_c_send1)
-        });
+        self.ws_sender = Some(sender);
 
         let receive_loop = thread::spawn(move || {
-            QAWebSocket::receive_loop(receiver, ws_send, db_send_1, s_c_send2)
+            QAWebSocket::receive_loop(receiver, addr)
         });
 
-        QAWebSocket::login(self.ws_channel.0.clone());
+        let account = CONFIG.common.account.clone();
+        let password = CONFIG.common.password.clone();
+        let broker = CONFIG.common.broker.clone();
+        let login = XReqLogin {
+            topic: "login".to_string(),
+            aid: "req_login".to_string(),
+            bid: broker.clone(),
+            user_name: account.clone(),
+            password: password.clone(),
+        };
+        let msg = serde_json::to_string(&login).unwrap();
+        self.send_message(OwnedMessage::Text(msg));
         Ok(())
     }
 
 
-    pub fn start_trader_loop(&mut self) {
-        let ws_send = self.ws_channel.0.clone();
-        let db_rx = self.db_channel.1.clone();  // db_r 1次
-        let trade_loop = thread::spawn(move || {
-            let mut qatrade = QATrader::new(ws_send, CONFIG.common.account.clone(), CONFIG.common.password.clone(),
-                                            CONFIG.common.wsuri.clone(), CONFIG.common.broker.clone(), CONFIG.common.portfolio.clone(),
-                                            CONFIG.common.eventmq_ip.clone(), CONFIG.common.ping_gap.clone(),
-                                            CONFIG.common.bank_password.clone(), CONFIG.common.capital_password.clone(),
-                                            CONFIG.common.taskid.clone(),
-            );
-            loop {
-                if let Ok(data) = db_rx.recv() {
-                    qatrade.sync(data);
-                };
-            }
-        });
+    pub fn ping(&mut self) {
+        let msg = format!("ping-{}", CONFIG.common.account).as_bytes().to_vec();
+        self.send_message(OwnedMessage::Ping(msg));
     }
 
-
-    pub fn wait(&mut self) {
-        match self.s_c.1.try_recv() {
-            Ok(event) => {
-                match event {
-                    Event::RESTART => {
-                        // self.set_discard_flag(true);
-                        warn!("WebSocket Try Reconnecting");
-                        if let Err(e) = self.start_ws_loop() {
-                            error!("{:?}", e);
-                            self.s_c.0.send(Event::RESTART);
-                        }
-                    }
-                    _ => ()
-                }
-            }
-            _ => ()
+    pub fn send_message(&mut self, item: OwnedMessage) {
+        if self.ws_sender.is_some() {
+            QAWebSocket::send(self.ws_sender.as_mut().unwrap(), item);
         }
     }
-
-    pub fn ping(&mut self) {
-        let msg = OwnedMessage::Ping(format!("ping-{}", CONFIG.common.account).as_bytes().to_vec());
-        self.ws_channel.0.send(msg);
-    }
-
-    // pub fn set_discard_flag(&mut self, flag: bool) {
-    //     let mut f = self.discard_flag.lock().unwrap();
-    //     *f = flag;
-    // }
-
-    // pub fn start_discard_mq_msg_loop(&mut self) {
-    //     let ws_recv = self.ws_channel.1.clone(); // ws_r 2次
-    //     let discard_f = Arc::clone(&self.discard_flag);
-    //     thread::spawn(move || {
-    //         let mut flag = false;
-    //         loop {
-    //             if let Ok(f) = discard_f.try_lock() {
-    //                 flag = *f;
-    //             };
-    //
-    //             if flag {
-    //                 if let Ok(x) = ws_recv.recv() {
-    //                     warn!("discard {:?}", x);
-    //                 }
-    //             }else{
-    //                 debug!("discard wait");
-    //                 thread::sleep(Duration::from_secs(1));
-    //             }
-    //         }
-    //     });
-    // }
 }
 
 impl Actor for Scheduler {
     type Context = Context<Self>;
     fn started(&mut self, ctx: &mut Self::Context) {
-        ctx.run_interval(Duration::from_secs(3), |act, ctx| {
-            act.wait();
-        });
+        self.trader.ws_sender = Some(ctx.address().clone());
+        self.start_mq_loop(ctx.address().clone());
+
+        if let Err(e) = self.start_ws_receive_loop(ctx.address().clone()) {
+            error!("websocket {:?}", e);
+            ctx.stop();
+            std::process::exit(1);
+        }
+
         ctx.run_interval(Duration::from_secs(CONFIG.common.ping_gap as u64), |act, ctx| {
             act.ping();
         });
     }
 }
+
+#[derive(Message, Debug)]
+#[rtype(result = "()")]
+pub struct WSReStart;
+
+
+impl Handler<WSReStart> for Scheduler {
+    type Result = ();
+    fn handle(&mut self, _: WSReStart, ctx: &mut Context<Self>) {
+        self.ws_sender = None;
+        if let Err(e) = self.start_ws_receive_loop(ctx.address().clone()) {
+            error!("{:?} , 3s later Try Reconnecting", e);
+            ctx.run_later(Duration::from_secs(3), |act, ctx| {
+                ctx.address().do_send(WSReStart);
+            });
+        }
+    }
+}
+
+
+#[derive(Message, Debug)]
+#[rtype(result = "()")]
+pub struct OwnedMessageWrap(pub OwnedMessage);
+
+
+impl Handler<OwnedMessageWrap> for Scheduler {
+    type Result = ();
+    fn handle(&mut self, msg: OwnedMessageWrap, ctx: &mut Context<Self>) {
+        self.send_message(msg.0);
+    }
+}
+
+
+#[derive(Message, Debug)]
+#[rtype(result = "()")]
+pub struct SyncMessage(pub String);
+
+
+impl Handler<SyncMessage> for Scheduler {
+    type Result = ();
+    fn handle(&mut self, msg: SyncMessage, ctx: &mut Context<Self>) {
+        self.trader.parse(msg.0);
+    }
+}
+
+
+#[derive(Message, Debug)]
+#[rtype(result = "()")]
+pub struct PongMessage;
+
+impl Handler<PongMessage> for Scheduler {
+    type Result = ();
+    fn handle(&mut self, msg: PongMessage, ctx: &mut Context<Self>) {
+        self.trader.sync();
+    }
+}
+
+
+

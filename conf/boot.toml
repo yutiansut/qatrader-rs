@@ -1,6 +1,6 @@
 [common]
-account= ""
-password= ""
+account= "150083"
+password= "980817"
 broker= "simnow"
 #wsuri= "ws://192.168.2.124:7988"
 wsuri= "ws://192.168.2.125:5000/ws/signal"
