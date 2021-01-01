@@ -1,11 +1,20 @@
 [package]
 name = "qatrade-rs"
-version = "0.1.0"
-authors = ["junefar <ljunf817@163.com>"]
+version = "0.4.0"
+description = 'quantaxis in rust'
+authors = ["yutiansut <yutiansut@qq.com>"]
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
+include = [
+    "src/**/*",
+    "Cargo.toml",
+    "README.md"
+]
+readme = "README.md"
+categories = ["science", "algorithms"]
+homepage = "https://github.com/yutiansut"
+repository = "https://github.com/yutiansut/qatrader-rs"
+documentation = "https://docs.rs/qatrade-rs/"
+license = "MIT OR Apache-2.0"
 [dependencies]
 websocket = "0.26.2"
 
@@ -28,7 +37,7 @@ env_logger = "0.7"
 lazy_static = "1.4.0"
 chrono = { version = "0.4", features = ["serde"] } # datetime
 
-qifi-rs = {git="https://github.com/QUANTAXIS/qifi-rs.git"}
+qifi-rs = "0.3.0"
 crossbeam-channel = "0.5.0"
 actix = "0.10.0"
 actix-rt = "1.0.0"
